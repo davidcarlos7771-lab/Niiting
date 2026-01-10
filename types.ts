@@ -21,8 +21,34 @@ export interface BlogPost {
   title: string;
   date: string;
   content: string;
-  imageUrls: string[]; // Changed from imageUrl to imageUrls
+  imageUrls: string[];
   author: string;
+}
+
+export interface SiteSettings {
+  navbar: {
+    logo: string;
+    subtitle: string;
+  };
+  hero: {
+    tag: string;
+    title: string;
+    description: string;
+    imageLeft: string;
+    imageRight: string;
+  };
+  footer: {
+    subscribeTitle: string;
+    contactTag: string;
+    contactEmail: string;
+  };
+  homeSections: {
+    apparelTitle: string;
+    fibreTitle: string;
+    visualTitle: string;
+    archiveTitle: string;
+    archiveTag: string;
+  };
 }
 
 export interface User {

@@ -2,8 +2,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Instagram, Facebook, Youtube } from 'lucide-react';
+import { SiteSettings } from '../types';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  settings: SiteSettings['navbar'];
+}
+
+const Navbar: React.FC<NavbarProps> = ({ settings }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
@@ -24,7 +29,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between h-20 items-center">
           {/* Logo */}
           <Link to="/" className="text-2xl serif font-semibold tracking-tight hover:opacity-70 transition-opacity">
-            ELENA <span className="text-xs tracking-widest block uppercase font-light -mt-1 italic">Artisanal Studio</span>
+            {settings.logo} <span className="text-xs tracking-widest block uppercase font-light -mt-1 italic">{settings.subtitle}</span>
           </Link>
 
           {/* Desktop Nav */}

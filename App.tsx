@@ -7,9 +7,9 @@ import CategorySection from './components/CategorySection';
 import JournalCard from './components/JournalCard';
 import AdminLogin from './components/AdminLogin';
 import PortfolioGallery from './components/PortfolioGallery';
-import { Category, PortfolioItem, BlogPost } from './types';
-import { INITIAL_PORTFOLIO, INITIAL_BLOGS } from './constants';
-import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2 } from 'lucide-react';
+import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
+import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS } from './constants';
+import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2, Settings } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -36,7 +36,7 @@ const Toast: React.FC<{ message: string; onClose: () => void }> = ({ message, on
 };
 
 // Shared Components
-const Footer: React.FC<{ onSubscribe: (email: string) => void }> = ({ onSubscribe }) => {
+const Footer: React.FC<{ onSubscribe: (email: string) => void, settings: SiteSettings['footer'] }> = ({ onSubscribe, settings }) => {
   const [email, setEmail] = useState('');
 
   const handleSubscribe = () => {
@@ -52,7 +52,7 @@ const Footer: React.FC<{ onSubscribe: (email: string) => void }> = ({ onSubscrib
     <footer className="bg-[#2C2C2C] text-[#F9F7F2] py-20 px-4 md:px-12 mt-24">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-start text-center md:text-left gap-12">
         <div className="flex-1">
-          <h3 className="text-2xl serif mb-6">Join the inner circle for pattern releases and design musings.</h3>
+          <h3 className="text-2xl serif mb-6">{settings.subscribeTitle}</h3>
           <div className="flex border-b border-[#706C61] pb-2 max-w-sm mx-auto md:mx-0">
             <input 
               type="email" 
@@ -70,8 +70,8 @@ const Footer: React.FC<{ onSubscribe: (email: string) => void }> = ({ onSubscrib
           </div>
         </div>
         <div className="flex flex-col items-center md:items-end">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#A09885] mb-2">TALK TO ME</p>
-          <p className="text-lg serif italic tracking-wide">jojo@niiting.com</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#A09885] mb-2">{settings.contactTag}</p>
+          <p className="text-lg serif italic tracking-wide">{settings.contactEmail}</p>
         </div>
       </div>
     </footer>
@@ -83,6 +83,7 @@ const AdminDashboard: React.FC<{
   portfolio: PortfolioItem[], 
   blogs: BlogPost[], 
   subscribers: Subscriber[],
+  siteSettings: SiteSettings,
   onLogout: () => void,
   onAddItem: (item: PortfolioItem) => void,
   onAddBlog: (blog: BlogPost) => void,
@@ -91,15 +92,17 @@ const AdminDashboard: React.FC<{
   onUpdateItem: (id: string, item: PortfolioItem) => void,
   onUpdateBlog: (id: string, blog: BlogPost) => void,
   onDeleteSubscriber: (id: string) => void,
-  onUpdateSubscriber: (id: string, email: string) => void
+  onUpdateSubscriber: (id: string, email: string) => void,
+  onUpdateSettings: (settings: SiteSettings) => void
 }> = ({ 
-  portfolio, blogs, subscribers, onLogout, 
+  portfolio, blogs, subscribers, siteSettings, onLogout, 
   onAddItem, onAddBlog, onDeleteItem, onDeleteBlog, onUpdateItem, onUpdateBlog,
-  onDeleteSubscriber, onUpdateSubscriber 
+  onDeleteSubscriber, onUpdateSubscriber, onUpdateSettings
 }) => {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers' | 'settings'>('portfolio');
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  // Portfolio/Blog Form State
   const [newTitle, setNewTitle] = useState('');
   const [newSubtitle, setNewSubtitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -108,6 +111,9 @@ const AdminDashboard: React.FC<{
   const [newDate, setNewDate] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
 
+  // Global Settings Form State
+  const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
+
   useEffect(() => {
     if (!editingId) {
       setNewDate(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
@@ -115,16 +121,21 @@ const AdminDashboard: React.FC<{
     }
   }, [activeTab, editingId]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight') => {
     const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach((file: File) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setNewImages(prev => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
+    if (files && files[0]) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        if (target === 'form') {
+          setNewImages(prev => [...prev, result]);
+        } else if (target === 'heroLeft') {
+          setTempSettings({ ...tempSettings, hero: { ...tempSettings.hero, imageLeft: result } });
+        } else if (target === 'heroRight') {
+          setTempSettings({ ...tempSettings, hero: { ...tempSettings.hero, imageRight: result } });
+        }
+      };
+      reader.readAsDataURL(files[0]);
     }
   };
 
@@ -225,14 +236,14 @@ const AdminDashboard: React.FC<{
         <div className="lg:col-span-1 space-y-8 p-8 bg-white border border-[#E5E0D5] sticky top-24 h-fit">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl uppercase tracking-widest">
-              {activeTab === 'subscribers' ? 'Records' : (editingId ? 'Edit' : 'Create New')}
+              {activeTab === 'subscribers' ? 'Records' : (activeTab === 'settings' ? 'Global Settings' : (editingId ? 'Edit' : 'Create New'))}
             </h2>
             {editingId && (
               <button onClick={resetForm} className="text-[10px] uppercase border-b border-black">Cancel Edit</button>
             )}
           </div>
           
-          <div className="flex bg-[#F9F7F2] p-1 mb-6 rounded">
+          <div className="flex bg-[#F9F7F2] p-1 mb-6 rounded flex-wrap gap-1">
             <button 
               type="button"
               onClick={() => { setActiveTab('portfolio'); resetForm(); }} 
@@ -254,9 +265,16 @@ const AdminDashboard: React.FC<{
             >
               Users
             </button>
+            <button 
+              type="button"
+              onClick={() => { setActiveTab('settings'); resetForm(); }} 
+              className={`flex-1 py-2 text-[10px] uppercase tracking-widest transition-colors ${activeTab === 'settings' ? 'bg-white shadow-sm font-bold' : 'text-[#A09885]'}`}
+            >
+              Site
+            </button>
           </div>
 
-          {activeTab !== 'subscribers' ? (
+          {activeTab === 'portfolio' || activeTab === 'blog' ? (
             <div className="space-y-4">
               {activeTab === 'portfolio' && (
                 <div>
@@ -327,7 +345,7 @@ const AdminDashboard: React.FC<{
                 <div className="relative border-2 border-dashed border-[#E5E0D5] rounded-lg p-6 text-center hover:border-[#A09885] transition-colors cursor-pointer">
                   <ImageIcon size={32} className="text-[#A09885] mb-2 mx-auto" />
                   <p className="text-[10px] text-[#A09885] uppercase">Upload Images</p>
-                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <input type="file" multiple accept="image/*" onChange={(e) => handleImageUpload(e, 'form')} className="absolute inset-0 opacity-0 cursor-pointer" />
                 </div>
 
                 {newImages.length > 0 && (
@@ -353,6 +371,46 @@ const AdminDashboard: React.FC<{
                 {editingId ? 'Save Changes' : `Publish to ${activeTab === 'portfolio' ? 'Gallery' : 'Journal'}`}
               </button>
             </div>
+          ) : activeTab === 'settings' ? (
+            <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
+              <div className="bg-[#F9F7F2] p-4 rounded border border-[#E5E0D5]">
+                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Header & Footer</h3>
+                <div className="space-y-3">
+                  <input 
+                    placeholder="Logo Text" 
+                    value={tempSettings.navbar.logo} 
+                    onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, logo: e.target.value}})}
+                    className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                  />
+                  <input 
+                    placeholder="Logo Subtitle" 
+                    value={tempSettings.navbar.subtitle} 
+                    onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, subtitle: e.target.value}})}
+                    className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                  />
+                  <input 
+                    placeholder="Contact Tag (e.g. TALK TO ME)" 
+                    value={tempSettings.footer.contactTag} 
+                    onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, contactTag: e.target.value}})}
+                    className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                  />
+                  <input 
+                    placeholder="Contact Email" 
+                    value={tempSettings.footer.contactEmail} 
+                    onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, contactEmail: e.target.value}})}
+                    className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => { onUpdateSettings(tempSettings); alert("Site settings saved!"); }}
+                className="w-full py-4 bg-[#2C2C2C] text-white text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-colors"
+              >
+                Save All Site Settings
+              </button>
+            </div>
           ) : (
             <div className="text-center p-8 bg-[#F9F7F2]">
               <Users size={32} className="mx-auto mb-4 text-[#A09885]" />
@@ -363,103 +421,179 @@ const AdminDashboard: React.FC<{
         </div>
 
         <div className="lg:col-span-2 space-y-8">
-          <h2 className="text-xl uppercase tracking-widest mb-6">
-            {activeTab === 'subscribers' ? 'Mailing List' : 'Existing Items'}
-          </h2>
-          
-          <div className="grid grid-cols-1 gap-6">
-            {activeTab === 'portfolio' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {portfolio.map(item => (
-                  <div key={item.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
-                    <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
-                      <img src={item.imageUrls[0]} className="w-full h-full object-cover" />
+          {activeTab === 'settings' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                 <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Hero Section</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Tagline</label>
+                        <input value={tempSettings.hero.tag} onChange={e => setTempSettings({...tempSettings, hero: {...tempSettings.hero, tag: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Hero Title</label>
+                        <textarea value={tempSettings.hero.title} onChange={e => setTempSettings({...tempSettings, hero: {...tempSettings.hero, title: e.target.value}})} className="w-full p-2 border text-xs" rows={2} />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Description</label>
+                        <textarea value={tempSettings.hero.description} onChange={e => setTempSettings({...tempSettings, hero: {...tempSettings.hero, description: e.target.value}})} className="w-full p-2 border text-xs" rows={3} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] uppercase text-[#706C61] mb-1">Left Image</label>
+                          <div className="relative aspect-square overflow-hidden bg-[#F9F7F2] border mb-2">
+                             <img src={tempSettings.hero.imageLeft} className="w-full h-full object-cover" />
+                             <input type="file" onChange={e => handleImageUpload(e, 'heroLeft')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase text-[#706C61] mb-1">Right Image</label>
+                          <div className="relative aspect-square overflow-hidden bg-[#F9F7F2] border mb-2">
+                             <img src={tempSettings.hero.imageRight} className="w-full h-full object-cover" />
+                             <input type="file" onChange={e => handleImageUpload(e, 'heroRight')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-[10px] uppercase text-[#A09885]">{item.category}</p>
-                      <h4 className="serif text-lg truncate break-all">{item.title}</h4>
-                    </div>
-                    <div className="flex space-x-2 flex-shrink-0">
-                      <button onClick={() => handleEditPortfolio(item)} className="p-2 text-[#706C61] hover:text-black">
-                        <Edit3 size={18} />
-                      </button>
-                      <button onClick={() => onDeleteItem(item.id)} className="p-2 text-red-300 hover:text-red-500">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                 </div>
               </div>
-            )}
-            
-            {activeTab === 'blog' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {blogs.map(blog => (
-                  <div key={blog.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
-                    <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
-                      <img src={blog.imageUrls[0]} className="w-full h-full object-cover" />
+              <div className="space-y-6">
+                <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Home Page Sections</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Apparel Section Title</label>
+                        <input value={tempSettings.homeSections.apparelTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Fibre Section Title</label>
+                        <input value={tempSettings.homeSections.fibreTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Visual Section Title</label>
+                        <input value={tempSettings.homeSections.visualTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Journal Section Title</label>
+                        <input value={tempSettings.homeSections.archiveTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Journal Section Tag</label>
+                        <input value={tempSettings.homeSections.archiveTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTag: e.target.value}})} className="w-full p-2 border text-xs" />
+                      </div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-[10px] uppercase text-[#A09885]">{blog.date}</p>
-                      <h4 className="serif text-lg truncate break-all">{blog.title}</h4>
+                </div>
+                <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Subscription Box</h3>
+                    <div>
+                      <label className="block text-[10px] uppercase text-[#706C61] mb-1">Title Text</label>
+                      <textarea value={tempSettings.footer.subscribeTitle} onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, subscribeTitle: e.target.value}})} className="w-full p-2 border text-xs" rows={2} />
                     </div>
-                    <div className="flex space-x-2 flex-shrink-0">
-                      <button onClick={() => handleEditBlog(blog)} className="p-2 text-[#706C61] hover:text-black">
-                        <Edit3 size={18} />
-                      </button>
-                      <button onClick={() => onDeleteBlog(blog.id)} className="p-2 text-red-300 hover:text-red-500">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            <>
+              <h2 className="text-xl uppercase tracking-widest mb-6">
+                {activeTab === 'subscribers' ? 'Mailing List' : 'Existing Items'}
+              </h2>
+              
+              <div className="grid grid-cols-1 gap-6">
+                {activeTab === 'portfolio' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {portfolio.map(item => (
+                      <div key={item.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
+                        <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
+                          <img src={item.imageUrls[0]} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-[10px] uppercase text-[#A09885]">{item.category}</p>
+                          <h4 className="serif text-lg truncate break-all">{item.title}</h4>
+                        </div>
+                        <div className="flex space-x-2 flex-shrink-0">
+                          <button onClick={() => handleEditPortfolio(item)} className="p-2 text-[#706C61] hover:text-black">
+                            <Edit3 size={18} />
+                          </button>
+                          <button onClick={() => onDeleteItem(item.id)} className="p-2 text-red-300 hover:text-red-500">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {activeTab === 'blog' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {blogs.map(blog => (
+                      <div key={blog.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
+                        <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
+                          <img src={blog.imageUrls[0]} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-[10px] uppercase text-[#A09885]">{blog.date}</p>
+                          <h4 className="serif text-lg truncate break-all">{blog.title}</h4>
+                        </div>
+                        <div className="flex space-x-2 flex-shrink-0">
+                          <button onClick={() => handleEditBlog(blog)} className="p-2 text-[#706C61] hover:text-black">
+                            <Edit3 size={18} />
+                          </button>
+                          <button onClick={() => onDeleteBlog(blog.id)} className="p-2 text-red-300 hover:text-red-500">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            {activeTab === 'subscribers' && (
-              <div className="bg-white border border-[#E5E0D5] overflow-x-auto shadow-sm">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-[#F9F7F2] border-b border-[#E5E0D5]">
-                      <th className="p-4 uppercase tracking-widest text-[10px] font-bold">#</th>
-                      <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Email Address</th>
-                      <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Subscribed Date</th>
-                      <th className="p-4 uppercase tracking-widest text-[10px] font-bold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subscribers.length > 0 ? (
-                      subscribers.map((sub, idx) => (
-                        <tr key={sub.id} className="border-b border-[#E5E0D5] last:border-0 hover:bg-[#F9F7F2]/50 transition-colors">
-                          <td className="p-4 text-[#A09885] text-xs">{idx + 1}</td>
-                          <td className="p-4 font-medium break-all">{sub.email}</td>
-                          <td className="p-4 text-[#706C61] text-xs whitespace-nowrap">{sub.date}</td>
-                          <td className="p-4 text-right whitespace-nowrap">
-                            <button 
-                              onClick={() => handleModifySubscriber(sub)}
-                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-blue-600 hover:text-blue-800 mr-4 font-semibold"
-                            >
-                              <Edit3 size={12} /> Modify
-                            </button>
-                            <button 
-                              onClick={() => onDeleteSubscriber(sub.id)}
-                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 hover:text-red-600 font-semibold"
-                            >
-                              <Trash2 size={12} /> Delete
-                            </button>
-                          </td>
+                {activeTab === 'subscribers' && (
+                  <div className="bg-white border border-[#E5E0D5] overflow-x-auto shadow-sm">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#F9F7F2] border-b border-[#E5E0D5]">
+                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">#</th>
+                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Email Address</th>
+                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Subscribed Date</th>
+                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold text-right">Actions</th>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="p-12 text-center text-[#706C61] italic">No subscribers yet.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {subscribers.length > 0 ? (
+                          subscribers.map((sub, idx) => (
+                            <tr key={sub.id} className="border-b border-[#E5E0D5] last:border-0 hover:bg-[#F9F7F2]/50 transition-colors">
+                              <td className="p-4 text-[#A09885] text-xs">{idx + 1}</td>
+                              <td className="p-4 font-medium break-all">{sub.email}</td>
+                              <td className="p-4 text-[#706C61] text-xs whitespace-nowrap">{sub.date}</td>
+                              <td className="p-4 text-right whitespace-nowrap">
+                                <button 
+                                  onClick={() => handleModifySubscriber(sub)}
+                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-blue-600 hover:text-blue-800 mr-4 font-semibold"
+                                >
+                                  <Edit3 size={12} /> Modify
+                                </button>
+                                <button 
+                                  onClick={() => onDeleteSubscriber(sub.id)}
+                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 hover:text-red-600 font-semibold"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="p-12 text-center text-[#706C61] italic">No subscribers yet.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -470,27 +604,45 @@ const AdminDashboard: React.FC<{
 const HomePage: React.FC<{ 
   portfolio: PortfolioItem[], 
   blogs: BlogPost[], 
+  siteSettings: SiteSettings,
   onItemClick: (item: PortfolioItem) => void,
   onBlogClick: (blog: BlogPost) => void 
-}> = ({ portfolio, blogs, onItemClick, onBlogClick }) => {
+}> = ({ portfolio, blogs, siteSettings, onItemClick, onBlogClick }) => {
   const featuredBlog = blogs.length > 0 ? blogs[0] : null;
   const otherBlogs = blogs.slice(1, 5);
 
   return (
     <div className="animate-in fade-in duration-700">
-      <Hero />
-      <CategorySection category={Category.APPAREL} items={portfolio} link="/apparel" onItemClick={onItemClick} />
-      <CategorySection category={Category.FIBRE} items={portfolio} link="/fibre" onItemClick={onItemClick} />
-      <CategorySection category={Category.VISUAL} items={portfolio} link="/visual" onItemClick={onItemClick} />
+      <Hero settings={siteSettings.hero} />
+      <CategorySection 
+        category={Category.APPAREL} 
+        items={portfolio} 
+        link="/apparel" 
+        onItemClick={onItemClick} 
+        customTitle={siteSettings.homeSections.apparelTitle}
+      />
+      <CategorySection 
+        category={Category.FIBRE} 
+        items={portfolio} 
+        link="/fibre" 
+        onItemClick={onItemClick} 
+        customTitle={siteSettings.homeSections.fibreTitle}
+      />
+      <CategorySection 
+        category={Category.VISUAL} 
+        items={portfolio} 
+        link="/visual" 
+        onItemClick={onItemClick} 
+        customTitle={siteSettings.homeSections.visualTitle}
+      />
       
       <section className="py-24 px-4 md:px-12 bg-[#F9F7F2]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 px-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">The Archive</p>
-            <h2 className="text-4xl serif italic">Recent Journal Entries</h2>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{siteSettings.homeSections.archiveTag}</p>
+            <h2 className="text-4xl serif italic">{siteSettings.homeSections.archiveTitle}</h2>
           </div>
 
-          {/* Featured latest post - Square on PC, only preview on mobile/tablet */}
           {featuredBlog && (
             <div 
               className="relative aspect-square w-full lg:max-w-4xl mx-auto mb-12 cursor-pointer group overflow-hidden shadow-2xl"
@@ -514,7 +666,6 @@ const HomePage: React.FC<{
             </div>
           )}
 
-          {/* Followed by 4 other latest posts - PC only grid */}
           <div className="hidden lg:grid grid-cols-4 gap-8">
             {otherBlogs.map(post => (
               <JournalCard key={post.id} post={post} onClick={onBlogClick} />
@@ -626,23 +777,30 @@ const BlogDetail: React.FC<{
 const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_portfolio_v3');
+      const saved = localStorage.getItem('elena_portfolio_v4');
       return saved ? JSON.parse(saved) : INITIAL_PORTFOLIO;
     } catch (e) { return INITIAL_PORTFOLIO; }
   });
 
   const [blogs, setBlogs] = useState<BlogPost[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_blogs_v3');
+      const saved = localStorage.getItem('elena_blogs_v4');
       return saved ? JSON.parse(saved) : INITIAL_BLOGS;
     } catch (e) { return INITIAL_BLOGS; }
   });
 
   const [subscribers, setSubscribers] = useState<Subscriber[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_subscribers_v3');
+      const saved = localStorage.getItem('elena_subscribers_v4');
       return saved ? JSON.parse(saved) : [];
     } catch (e) { return []; }
+  });
+
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
+    try {
+      const saved = localStorage.getItem('elena_settings_v4');
+      return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    } catch (e) { return INITIAL_SETTINGS; }
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('elena_auth') === 'true');
@@ -652,11 +810,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('elena_portfolio_v3', JSON.stringify(portfolio));
-      localStorage.setItem('elena_blogs_v3', JSON.stringify(blogs));
-      localStorage.setItem('elena_subscribers_v3', JSON.stringify(subscribers));
+      localStorage.setItem('elena_portfolio_v4', JSON.stringify(portfolio));
+      localStorage.setItem('elena_blogs_v4', JSON.stringify(blogs));
+      localStorage.setItem('elena_subscribers_v4', JSON.stringify(subscribers));
+      localStorage.setItem('elena_settings_v4', JSON.stringify(siteSettings));
     } catch (e) { console.error("Quota full?"); }
-  }, [portfolio, blogs, subscribers]);
+  }, [portfolio, blogs, subscribers, siteSettings]);
 
   const handleSubscribe = (email: string) => {
     const newSub: Subscriber = {
@@ -678,13 +837,17 @@ const App: React.FC = () => {
     setSubscribers(subscribers.map(s => s.id === id ? { ...s, email } : s));
   };
 
+  const handleUpdateSettings = (newSettings: SiteSettings) => {
+    setSiteSettings(newSettings);
+  };
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col selection:bg-[#E5E0D5]">
-        <Navbar />
+        <Navbar settings={siteSettings.navbar} />
         <div className="flex-grow">
           <Routes>
-            <Route path="/" element={<HomePage portfolio={portfolio} blogs={blogs} onItemClick={setSelectedProject} onBlogClick={setSelectedBlog} />} />
+            <Route path="/" element={<HomePage portfolio={portfolio} blogs={blogs} siteSettings={siteSettings} onItemClick={setSelectedProject} onBlogClick={setSelectedBlog} />} />
             <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={portfolio} onItemClick={setSelectedProject} />} />
             <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={portfolio} onItemClick={setSelectedProject} />} />
             <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={portfolio} onItemClick={setSelectedProject} />} />
@@ -695,6 +858,7 @@ const App: React.FC = () => {
                   portfolio={portfolio} 
                   blogs={blogs} 
                   subscribers={subscribers}
+                  siteSettings={siteSettings}
                   onLogout={() => { setIsLoggedIn(false); localStorage.removeItem('elena_auth'); }}
                   onAddItem={(item) => setPortfolio([item, ...portfolio])}
                   onAddBlog={(blog) => setBlogs([blog, ...blogs])}
@@ -704,6 +868,7 @@ const App: React.FC = () => {
                   onUpdateBlog={(id, updated) => setBlogs(blogs.map(b => b.id === id ? updated : b))}
                   onDeleteSubscriber={handleDeleteSubscriber}
                   onUpdateSubscriber={handleUpdateSubscriber}
+                  onUpdateSettings={handleUpdateSettings}
                 />
               ) : (
                 <AdminLogin onLogin={() => { setIsLoggedIn(true); localStorage.setItem('elena_auth', 'true'); }} />
@@ -711,7 +876,7 @@ const App: React.FC = () => {
             } />
           </Routes>
         </div>
-        <Footer onSubscribe={handleSubscribe} />
+        <Footer onSubscribe={handleSubscribe} settings={siteSettings.footer} />
         {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
         <PortfolioGallery item={selectedProject} onClose={() => setSelectedProject(null)} />
         <BlogDetail post={selectedBlog} onClose={() => setSelectedBlog(null)} />

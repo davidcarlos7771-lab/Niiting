@@ -1,14 +1,19 @@
 
 import React from 'react';
+import { SiteSettings } from '../types';
 
-const Hero: React.FC = () => {
+interface HeroProps {
+  settings: SiteSettings['hero'];
+}
+
+const Hero: React.FC<HeroProps> = ({ settings }) => {
   return (
     <section className="relative h-[85vh] overflow-hidden bg-[#E5E0D5]">
       <div className="absolute inset-0 flex flex-col md:flex-row">
         {/* Left Image Section */}
         <div className="w-full md:w-1/3 h-full relative overflow-hidden group">
           <img 
-            src="https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1000" 
+            src={settings.imageLeft} 
             className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
             alt="Crafting"
           />
@@ -17,12 +22,12 @@ const Hero: React.FC = () => {
         
         {/* Center Text Section */}
         <div className="w-full md:w-1/3 h-full flex flex-col justify-center items-center px-12 text-center bg-[#F9F7F2] z-10">
-          <span className="text-xs uppercase tracking-[0.3em] text-[#706C61] mb-6">Archive of Intentional Living</span>
+          <span className="text-xs uppercase tracking-[0.3em] text-[#706C61] mb-6">{settings.tag}</span>
           <h1 className="text-5xl md:text-7xl serif leading-tight text-[#2C2C2C] mb-8">
-            Where Couture Meets the Hearth
+            {settings.title}
           </h1>
           <p className="text-base text-[#706C61] font-light max-w-xs leading-relaxed mb-10">
-            A living archive of fashion design, fiber crafts, and the art of intentional living.
+            {settings.description}
           </p>
           <div className="w-12 h-[1px] bg-[#2C2C2C]"></div>
         </div>
@@ -30,7 +35,7 @@ const Hero: React.FC = () => {
         {/* Right Image Section */}
         <div className="w-full md:w-1/3 h-full relative overflow-hidden group">
           <img 
-            src="https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1000" 
+            src={settings.imageRight} 
             className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
             alt="Linen Dress"
           />

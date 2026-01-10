@@ -1,5 +1,31 @@
 
-import { Category, PortfolioItem, BlogPost } from './types';
+import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
+
+export const INITIAL_SETTINGS: SiteSettings = {
+  navbar: {
+    logo: 'ELENA',
+    subtitle: 'Artisanal Studio'
+  },
+  hero: {
+    tag: 'Archive of Intentional Living',
+    title: 'Where Couture Meets the Hearth',
+    description: 'A living archive of fashion design, fiber crafts, and the art of intentional living.',
+    imageLeft: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1000',
+    imageRight: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1000'
+  },
+  footer: {
+    subscribeTitle: 'Join the inner circle for pattern releases and design musings.',
+    contactTag: 'TALK TO ME',
+    contactEmail: 'jojo@niiting.com'
+  },
+  homeSections: {
+    apparelTitle: 'Featured Collections',
+    fibreTitle: 'Featured Collections',
+    visualTitle: 'Featured Collections',
+    archiveTitle: 'Recent Journal Entries',
+    archiveTag: 'The Archive'
+  }
+};
 
 export const INITIAL_PORTFOLIO: PortfolioItem[] = [
   {
