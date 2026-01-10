@@ -1,10 +1,27 @@
 
 import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
 
+// Browser-based "soft" security key. 
+// If you forget your browser-set key, you can change 'admin123' here.
+const a = 'admin123';
+export const K = a;
+
 export const INITIAL_SETTINGS: SiteSettings = {
   navbar: {
-    logo: 'ELENA',
-    subtitle: 'Artisanal Studio'
+    logo: 'JOJO',
+    subtitle: 'My Artisanal Story',
+    links: {
+      home: 'Home',
+      apparel: 'Apparel Design',
+      fibre: 'Fibre Arts',
+      visual: 'Visual Arts',
+      journal: 'Journal'
+    },
+    socials: {
+      instagram: 'https://instagram.com',
+      facebook: 'https://facebook.com',
+      youtube: 'https://youtube.com'
+    }
   },
   hero: {
     tag: 'Archive of Intentional Living',
@@ -20,8 +37,11 @@ export const INITIAL_SETTINGS: SiteSettings = {
   },
   homeSections: {
     apparelTitle: 'Featured Collections',
+    apparelTag: 'Apparel Design',
     fibreTitle: 'Featured Collections',
+    fibreTag: 'Fibre Arts',
     visualTitle: 'Featured Collections',
+    visualTag: 'Visual Arts',
     archiveTitle: 'Recent Journal Entries',
     archiveTag: 'The Archive'
   }

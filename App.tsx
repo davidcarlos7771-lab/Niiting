@@ -8,8 +8,8 @@ import JournalCard from './components/JournalCard';
 import AdminLogin from './components/AdminLogin';
 import PortfolioGallery from './components/PortfolioGallery';
 import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
-import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS } from './constants';
-import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2, Settings } from 'lucide-react';
+import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS, K } from './constants';
+import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2, Settings, Globe, ShieldCheck } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -70,7 +70,12 @@ const Footer: React.FC<{ onSubscribe: (email: string) => void, settings: SiteSet
           </div>
         </div>
         <div className="flex flex-col items-center md:items-end">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#A09885] mb-2">{settings.contactTag}</p>
+          <Link 
+            to="/studio" 
+            className="text-xs uppercase tracking-[0.3em] text-[#A09885] mb-4 hover:opacity-70 transition-opacity"
+          >
+            {settings.contactTag}
+          </Link>
           <p className="text-lg serif italic tracking-wide">{settings.contactEmail}</p>
         </div>
       </div>
@@ -93,15 +98,21 @@ const AdminDashboard: React.FC<{
   onUpdateBlog: (id: string, blog: BlogPost) => void,
   onDeleteSubscriber: (id: string) => void,
   onUpdateSubscriber: (id: string, email: string) => void,
-  onUpdateSettings: (settings: SiteSettings) => void
+  onUpdateSettings: (settings: SiteSettings) => void,
+  onUpdatePassword: (old: string, updated: string) => boolean
 }> = ({ 
   portfolio, blogs, subscribers, siteSettings, onLogout, 
   onAddItem, onAddBlog, onDeleteItem, onDeleteBlog, onUpdateItem, onUpdateBlog,
-  onDeleteSubscriber, onUpdateSubscriber, onUpdateSettings
+  onDeleteSubscriber, onUpdateSubscriber, onUpdateSettings, onUpdatePassword
 }) => {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers' | 'settings'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers' | 'settings' | 'security'>('portfolio');
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  // Security Form State
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+
   // Portfolio/Blog Form State
   const [newTitle, setNewTitle] = useState('');
   const [newSubtitle, setNewSubtitle] = useState('');
@@ -182,6 +193,25 @@ const AdminDashboard: React.FC<{
     }
   };
 
+  const handleSecurityUpdate = () => {
+    if (!pwdCurrent || !pwdNew || !pwdConfirm) {
+      alert("Please fill in all security fields.");
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      alert("New passwords do not match!");
+      return;
+    }
+    if (onUpdatePassword(pwdCurrent, pwdNew)) {
+      alert("Studio access key updated successfully!");
+      setPwdCurrent('');
+      setPwdNew('');
+      setPwdConfirm('');
+    } else {
+      alert("Verification failed.");
+    }
+  };
+
   const handleSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!newTitle || newImages.length === 0) {
@@ -224,7 +254,7 @@ const AdminDashboard: React.FC<{
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 min-h-screen animate-in fade-in">
+    <div className="max-w-[1600px] mx-auto px-6 py-12 min-h-screen animate-in fade-in">
       <div className="flex justify-between items-center mb-12 pb-6 border-b border-[#E5E0D5]">
         <h1 className="text-4xl serif">Studio Management</h1>
         <button onClick={onLogout} className="flex items-center text-xs uppercase tracking-widest text-[#706C61] hover:text-black">
@@ -236,7 +266,7 @@ const AdminDashboard: React.FC<{
         <div className="lg:col-span-1 space-y-8 p-8 bg-white border border-[#E5E0D5] sticky top-24 h-fit">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl uppercase tracking-widest">
-              {activeTab === 'subscribers' ? 'Records' : (activeTab === 'settings' ? 'Global Settings' : (editingId ? 'Edit' : 'Create New'))}
+              {activeTab === 'subscribers' ? 'Records' : (activeTab === 'settings' ? 'Site Config' : (activeTab === 'security' ? 'Auth' : (editingId ? 'Edit' : 'Create')))}
             </h2>
             {editingId && (
               <button onClick={resetForm} className="text-[10px] uppercase border-b border-black">Cancel Edit</button>
@@ -249,7 +279,7 @@ const AdminDashboard: React.FC<{
               onClick={() => { setActiveTab('portfolio'); resetForm(); }} 
               className={`flex-1 py-2 text-[10px] uppercase tracking-widest transition-colors ${activeTab === 'portfolio' ? 'bg-white shadow-sm font-bold' : 'text-[#A09885]'}`}
             >
-              Portfolio
+              Gallery
             </button>
             <button 
               type="button"
@@ -271,6 +301,13 @@ const AdminDashboard: React.FC<{
               className={`flex-1 py-2 text-[10px] uppercase tracking-widest transition-colors ${activeTab === 'settings' ? 'bg-white shadow-sm font-bold' : 'text-[#A09885]'}`}
             >
               Site
+            </button>
+            <button 
+              type="button"
+              onClick={() => { setActiveTab('security'); resetForm(); }} 
+              className={`flex-1 py-2 text-[10px] uppercase tracking-widest transition-colors ${activeTab === 'security' ? 'bg-white shadow-sm font-bold' : 'text-[#A09885]'}`}
+            >
+              <ShieldCheck size={12} className="inline mr-1" /> Auth
             </button>
           </div>
 
@@ -372,24 +409,58 @@ const AdminDashboard: React.FC<{
               </button>
             </div>
           ) : activeTab === 'settings' ? (
-            <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
+            <div className="space-y-6 overflow-y-auto max-h-[70vh] pr-2 custom-scroll">
               <div className="bg-[#F9F7F2] p-4 rounded border border-[#E5E0D5]">
-                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Header & Footer</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Branding</h3>
                 <div className="space-y-3">
                   <input 
-                    placeholder="Logo Text" 
+                    placeholder="Logo" 
                     value={tempSettings.navbar.logo} 
                     onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, logo: e.target.value}})}
                     className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
                   />
                   <input 
-                    placeholder="Logo Subtitle" 
+                    placeholder="Subtitle" 
                     value={tempSettings.navbar.subtitle} 
                     onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, subtitle: e.target.value}})}
                     className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
                   />
+                </div>
+              </div>
+
+              <div className="bg-[#F9F7F2] p-4 rounded border border-[#E5E0D5]">
+                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Nav Labels</h3>
+                <div className="space-y-2">
+                  {Object.keys(tempSettings.navbar.links).map((key) => (
+                    <div key={key} className="flex gap-2 items-center">
+                      <span className="text-[10px] uppercase text-[#A09885] w-20">{key}</span>
+                      <input 
+                        value={(tempSettings.navbar.links as any)[key]} 
+                        onChange={e => setTempSettings({
+                          ...tempSettings, 
+                          navbar: {
+                            ...tempSettings.navbar, 
+                            links: { ...tempSettings.navbar.links, [key]: e.target.value }
+                          }
+                        })}
+                        className="w-full p-2 border border-[#E5E0D5] outline-none text-[10px]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#F9F7F2] p-4 rounded border border-[#E5E0D5]">
+                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Footer</h3>
+                <div className="space-y-3">
                   <input 
-                    placeholder="Contact Tag (e.g. TALK TO ME)" 
+                    placeholder="Subscribe Title" 
+                    value={tempSettings.footer.subscribeTitle} 
+                    onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, subscribeTitle: e.target.value}})}
+                    className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                  />
+                  <input 
+                    placeholder="Contact Tag" 
                     value={tempSettings.footer.contactTag} 
                     onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, contactTag: e.target.value}})}
                     className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
@@ -405,23 +476,66 @@ const AdminDashboard: React.FC<{
 
               <button 
                 type="button"
-                onClick={() => { onUpdateSettings(tempSettings); alert("Site settings saved!"); }}
+                onClick={() => { onUpdateSettings(tempSettings); alert("Configurations synced."); }}
                 className="w-full py-4 bg-[#2C2C2C] text-white text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-colors"
               >
-                Save All Site Settings
+                Sync Settings
+              </button>
+            </div>
+          ) : activeTab === 'security' ? (
+            <div className="space-y-6">
+               <div className="bg-[#F9F7F2] p-6 rounded border border-[#E5E0D5]">
+                  <h3 className="text-sm font-bold uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2 flex items-center gap-2">
+                    <ShieldCheck size={16} /> Access Control
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] uppercase text-[#706C61] mb-1">Current Key</label>
+                      <input 
+                        type="password" 
+                        value={pwdCurrent} 
+                        onChange={e => setPwdCurrent(e.target.value)} 
+                        className="w-full p-3 border text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-[#706C61] mb-1">New Access Key</label>
+                      <input 
+                        type="password" 
+                        value={pwdNew} 
+                        onChange={e => setPwdNew(e.target.value)} 
+                        className="w-full p-3 border text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-[#706C61] mb-1">Confirm New Key</label>
+                      <input 
+                        type="password" 
+                        value={pwdConfirm} 
+                        onChange={e => setPwdConfirm(e.target.value)} 
+                        className="w-full p-3 border text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+               </div>
+               <button 
+                type="button"
+                onClick={handleSecurityUpdate}
+                className="w-full py-4 bg-black text-white text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity"
+              >
+                Save New Access Key
               </button>
             </div>
           ) : (
             <div className="text-center p-8 bg-[#F9F7F2]">
               <Users size={32} className="mx-auto mb-4 text-[#A09885]" />
-              <h3 className="text-lg serif italic">Review Subscriber Data</h3>
-              <p className="text-[10px] uppercase tracking-widest text-[#706C61] mt-2">Managing your audience list</p>
+              <h3 className="text-lg serif italic">Audience Overview</h3>
             </div>
           )}
         </div>
 
         <div className="lg:col-span-2 space-y-8">
-          {activeTab === 'settings' ? (
+          {(activeTab === 'settings' || activeTab === 'security') ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                  <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
@@ -439,161 +553,251 @@ const AdminDashboard: React.FC<{
                         <label className="block text-[10px] uppercase text-[#706C61] mb-1">Description</label>
                         <textarea value={tempSettings.hero.description} onChange={e => setTempSettings({...tempSettings, hero: {...tempSettings.hero, description: e.target.value}})} className="w-full p-2 border text-xs" rows={3} />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] uppercase text-[#706C61] mb-1">Left Image</label>
-                          <div className="relative aspect-square overflow-hidden bg-[#F9F7F2] border mb-2">
-                             <img src={tempSettings.hero.imageLeft} className="w-full h-full object-cover" />
-                             <input type="file" onChange={e => handleImageUpload(e, 'heroLeft')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase text-[#706C61] mb-1">Right Image</label>
-                          <div className="relative aspect-square overflow-hidden bg-[#F9F7F2] border mb-2">
-                             <img src={tempSettings.hero.imageRight} className="w-full h-full object-cover" />
-                             <input type="file" onChange={e => handleImageUpload(e, 'heroRight')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                          </div>
-                        </div>
-                      </div>
+                    </div>
+                 </div>
+                 <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Connect Icons</h3>
+                    <div className="space-y-2">
+                       <input placeholder="Instagram" value={tempSettings.navbar.socials.instagram} onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, socials: {...tempSettings.navbar.socials, instagram: e.target.value}}})} className="w-full p-2 border text-[10px]" />
+                       <input placeholder="Facebook" value={tempSettings.navbar.socials.facebook} onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, socials: {...tempSettings.navbar.socials, facebook: e.target.value}}})} className="w-full p-2 border text-[10px]" />
+                       <input placeholder="YouTube" value={tempSettings.navbar.socials.youtube} onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, socials: {...tempSettings.navbar.socials, youtube: e.target.value}}})} className="w-full p-2 border text-[10px]" />
                     </div>
                  </div>
               </div>
               <div className="space-y-6">
                 <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
-                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Home Page Sections</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Apparel Section Title</label>
-                        <input value={tempSettings.homeSections.apparelTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Home Sections</h3>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Apparel Tag</label>
+                          <input value={tempSettings.homeSections.apparelTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTag: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Apparel Title</label>
+                          <input value={tempSettings.homeSections.apparelTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Fibre Section Title</label>
-                        <input value={tempSettings.homeSections.fibreTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Fibre Tag</label>
+                          <input value={tempSettings.homeSections.fibreTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTag: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Fibre Title</label>
+                          <input value={tempSettings.homeSections.fibreTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Visual Section Title</label>
-                        <input value={tempSettings.homeSections.visualTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Visual Tag</label>
+                          <input value={tempSettings.homeSections.visualTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTag: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Visual Title</label>
+                          <input value={tempSettings.homeSections.visualTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Journal Section Title</label>
-                        <input value={tempSettings.homeSections.archiveTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#E5E0D5]">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Journal Tag</label>
+                          <input value={tempSettings.homeSections.archiveTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTag: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-[#A09885]">Journal Title</label>
+                          <input value={tempSettings.homeSections.archiveTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTitle: e.target.value}})} className="w-full p-2 border text-xs" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#706C61] mb-1">Journal Section Tag</label>
-                        <input value={tempSettings.homeSections.archiveTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, archiveTag: e.target.value}})} className="w-full p-2 border text-xs" />
-                      </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 border border-[#E5E0D5] rounded shadow-sm">
-                    <h3 className="text-sm uppercase tracking-widest mb-6 border-b border-[#E5E0D5] pb-2">Subscription Box</h3>
-                    <div>
-                      <label className="block text-[10px] uppercase text-[#706C61] mb-1">Title Text</label>
-                      <textarea value={tempSettings.footer.subscribeTitle} onChange={e => setTempSettings({...tempSettings, footer: {...tempSettings.footer, subscribeTitle: e.target.value}})} className="w-full p-2 border text-xs" rows={2} />
                     </div>
                 </div>
               </div>
             </div>
           ) : (
-            <>
-              <h2 className="text-xl uppercase tracking-widest mb-6">
-                {activeTab === 'subscribers' ? 'Mailing List' : 'Existing Items'}
-              </h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                {activeTab === 'portfolio' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {portfolio.map(item => (
-                      <div key={item.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
-                        <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
-                          <img src={item.imageUrls[0]} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                          <p className="text-[10px] uppercase text-[#A09885]">{item.category}</p>
-                          <h4 className="serif text-lg truncate break-all">{item.title}</h4>
-                        </div>
-                        <div className="flex space-x-2 flex-shrink-0">
-                          <button onClick={() => handleEditPortfolio(item)} className="p-2 text-[#706C61] hover:text-black">
-                            <Edit3 size={18} />
-                          </button>
-                          <button onClick={() => onDeleteItem(item.id)} className="p-2 text-red-300 hover:text-red-500">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+            <div className="grid grid-cols-1 gap-6">
+              {activeTab === 'portfolio' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {portfolio.map(item => (
+                    <div key={item.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4">
+                      <div className="w-12 h-20 flex-shrink-0 bg-[#E5E0D5] overflow-hidden">
+                        <img src={item.imageUrls[0]} className="w-full h-full object-cover" />
                       </div>
-                    ))}
-                  </div>
-                )}
-                
-                {activeTab === 'blog' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {blogs.map(blog => (
-                      <div key={blog.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4 overflow-hidden">
-                        <div className="relative aspect-[9/16] w-12 flex-shrink-0 overflow-hidden shadow-sm">
-                          <img src={blog.imageUrls[0]} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                          <p className="text-[10px] uppercase text-[#A09885]">{blog.date}</p>
-                          <h4 className="serif text-lg truncate break-all">{blog.title}</h4>
-                        </div>
-                        <div className="flex space-x-2 flex-shrink-0">
-                          <button onClick={() => handleEditBlog(blog)} className="p-2 text-[#706C61] hover:text-black">
-                            <Edit3 size={18} />
-                          </button>
-                          <button onClick={() => onDeleteBlog(blog.id)} className="p-2 text-red-300 hover:text-red-500">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="serif text-lg truncate">{item.title}</h4>
+                        <p className="text-[10px] uppercase text-[#A09885]">{item.category}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 'subscribers' && (
-                  <div className="bg-white border border-[#E5E0D5] overflow-x-auto shadow-sm">
-                    <table className="w-full text-left text-sm border-collapse">
-                      <thead>
-                        <tr className="bg-[#F9F7F2] border-b border-[#E5E0D5]">
-                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">#</th>
-                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Email Address</th>
-                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold">Subscribed Date</th>
-                          <th className="p-4 uppercase tracking-widest text-[10px] font-bold text-right">Actions</th>
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleEditPortfolio(item)} className="p-2 text-[#706C61] hover:text-black">
+                          <Edit3 size={18} />
+                        </button>
+                        <button onClick={() => onDeleteItem(item.id)} className="p-2 text-red-300 hover:text-red-500">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {activeTab === 'blog' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {blogs.map(blog => (
+                    <div key={blog.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4">
+                      <div className="w-12 h-20 flex-shrink-0 bg-[#E5E0D5] overflow-hidden">
+                        <img src={blog.imageUrls[0]} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="serif text-lg truncate">{blog.title}</h4>
+                        <p className="text-[10px] uppercase text-[#A09885]">{blog.date}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleEditBlog(blog)} className="p-2 text-[#706C61] hover:text-black">
+                          <Edit3 size={18} />
+                        </button>
+                        <button onClick={() => onDeleteBlog(blog.id)} className="p-2 text-red-300 hover:text-red-500">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {activeTab === 'subscribers' && (
+                <div className="bg-white border border-[#E5E0D5] overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-[#F9F7F2] border-b border-[#E5E0D5]">
+                        <th className="p-4 uppercase text-[10px]">Email</th>
+                        <th className="p-4 text-right uppercase text-[10px]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subscribers.map(sub => (
+                        <tr key={sub.id} className="border-b border-[#E5E0D5] last:border-0">
+                          <td className="p-4 font-medium">{sub.email}</td>
+                          <td className="p-4 text-right">
+                            <button onClick={() => onDeleteSubscriber(sub.id)} className="text-red-400 hover:text-red-600">
+                              <Trash2 size={16} className="inline" />
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {subscribers.length > 0 ? (
-                          subscribers.map((sub, idx) => (
-                            <tr key={sub.id} className="border-b border-[#E5E0D5] last:border-0 hover:bg-[#F9F7F2]/50 transition-colors">
-                              <td className="p-4 text-[#A09885] text-xs">{idx + 1}</td>
-                              <td className="p-4 font-medium break-all">{sub.email}</td>
-                              <td className="p-4 text-[#706C61] text-xs whitespace-nowrap">{sub.date}</td>
-                              <td className="p-4 text-right whitespace-nowrap">
-                                <button 
-                                  onClick={() => handleModifySubscriber(sub)}
-                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-blue-600 hover:text-blue-800 mr-4 font-semibold"
-                                >
-                                  <Edit3 size={12} /> Modify
-                                </button>
-                                <button 
-                                  onClick={() => onDeleteSubscriber(sub.id)}
-                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-red-400 hover:text-red-600 font-semibold"
-                                >
-                                  <Trash2 size={12} /> Delete
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={4} className="p-12 text-center text-[#706C61] italic">No subscribers yet.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// CategoryPage Component
+const CategoryPage: React.FC<{ 
+  category: Category; 
+  items: PortfolioItem[]; 
+  onItemClick: (item: PortfolioItem) => void 
+}> = ({ category, items, onItemClick }) => {
+  const filteredItems = items.filter(item => item.category === category);
+  return (
+    <div className="pt-32 pb-24 px-6 md:px-12 animate-in fade-in duration-700">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{category}</p>
+          <h2 className="text-5xl serif italic">Collections</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          {filteredItems.map((item) => (
+            <div key={item.id} className="cursor-pointer group flex flex-col" onClick={() => onItemClick(item)}>
+              <div className="aspect-[9/16] overflow-hidden mb-6 bg-[#E5E0D5] relative shadow-sm">
+                <img 
+                  src={item.imageUrls[0]} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                />
+                {item.imageUrls.length > 1 && (
+                  <div className="absolute bottom-4 right-4 bg-white/90 px-2 py-1 text-[8px] uppercase tracking-widest">
+                    +{item.imageUrls.length - 1} Images
                   </div>
                 )}
               </div>
-            </>
-          )}
+              <p className="text-[10px] uppercase tracking-widest text-[#706C61] mb-2">{item.subtitle}</p>
+              <h3 className="text-xl serif mb-2 group-hover:italic transition-all">{item.title}</h3>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// JournalPage Component
+const JournalPage: React.FC<{ 
+  blogs: BlogPost[]; 
+  onBlogClick: (blog: BlogPost) => void 
+}> = ({ blogs, onBlogClick }) => {
+  return (
+    <div className="pt-32 pb-24 px-6 md:px-12 animate-in fade-in duration-700 bg-[#F9F7F2]">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-16 px-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">The Archive</p>
+          <h2 className="text-5xl serif italic">Journal</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          {blogs.map((post) => (
+            <JournalCard key={post.id} post={post} onClick={onBlogClick} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// BlogDetail Component
+const BlogDetail: React.FC<{ 
+  post: BlogPost | null; 
+  onClose: () => void 
+}> = ({ post, onClose }) => {
+  if (!post) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-[#F9F7F2] overflow-y-auto animate-in slide-in-from-bottom duration-500" onClick={onClose}>
+      <button 
+        onClick={onClose} 
+        className="fixed top-8 right-8 p-2 text-[#2C2C2C] hover:scale-110 transition-transform z-[110] bg-white/50 rounded-full md:bg-transparent"
+      >
+        <X size={32} strokeWidth={1} />
+      </button>
+      <div className="max-w-4xl mx-auto px-6 py-24" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-widest text-[#706C61] mb-4">{post.date}</p>
+          <h1 className="text-4xl md:text-6xl serif mb-8 leading-tight">{post.title}</h1>
+          <div className="w-12 h-[1px] bg-[#2C2C2C] mx-auto"></div>
+        </div>
+        
+        <div className="space-y-12">
+          {post.imageUrls.map((url, idx) => (
+            <div key={idx} className="aspect-[16/9] md:aspect-[21/9] overflow-hidden bg-[#E5E0D5] shadow-lg">
+               <img src={url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ))}
+
+          <div className="prose prose-stone mx-auto">
+            <p className="text-lg md:text-xl leading-relaxed text-[#2C2C2C] font-light whitespace-pre-wrap first-letter:text-5xl first-letter:serif first-letter:float-left first-letter:mr-3">
+              {post.content}
+            </p>
+          </div>
+        </div>
+        
+        <div className="mt-24 pt-12 border-t border-[#E5E0D5] text-center">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#A09885] mb-2">Curated By</p>
+          <p className="text-2xl serif italic">{post.author}</p>
+          <button 
+            onClick={onClose}
+            className="mt-12 inline-block px-10 py-3 border border-[#2C2C2C] text-xs uppercase tracking-widest hover:bg-[#2C2C2C] hover:text-white transition-all"
+          >
+            Close Entry
+          </button>
         </div>
       </div>
     </div>
@@ -614,12 +818,16 @@ const HomePage: React.FC<{
   return (
     <div className="animate-in fade-in duration-700">
       <Hero settings={siteSettings.hero} />
+      
+      {/* Hand-written banner removed as requested */}
+
       <CategorySection 
         category={Category.APPAREL} 
         items={portfolio} 
         link="/apparel" 
         onItemClick={onItemClick} 
         customTitle={siteSettings.homeSections.apparelTitle}
+        customTag={siteSettings.homeSections.apparelTag}
       />
       <CategorySection 
         category={Category.FIBRE} 
@@ -627,6 +835,7 @@ const HomePage: React.FC<{
         link="/fibre" 
         onItemClick={onItemClick} 
         customTitle={siteSettings.homeSections.fibreTitle}
+        customTag={siteSettings.homeSections.fibreTag}
       />
       <CategorySection 
         category={Category.VISUAL} 
@@ -634,10 +843,11 @@ const HomePage: React.FC<{
         link="/visual" 
         onItemClick={onItemClick} 
         customTitle={siteSettings.homeSections.visualTitle}
+        customTag={siteSettings.homeSections.visualTag}
       />
       
       <section className="py-24 px-4 md:px-12 bg-[#F9F7F2]">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           <div className="text-center mb-16 px-4">
             <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{siteSettings.homeSections.archiveTag}</p>
             <h2 className="text-4xl serif italic">{siteSettings.homeSections.archiveTitle}</h2>
@@ -654,11 +864,8 @@ const HomePage: React.FC<{
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
-                <p className="text-[10px] md:text-xs uppercase tracking-[0.3em] opacity-80 mb-4 line-clamp-2">{featuredBlog.date}</p>
+                <p className="text-[10px] md:text-xs uppercase tracking-[0.3em] opacity-80 mb-4">{featuredBlog.date}</p>
                 <h3 className="text-3xl md:text-6xl serif mb-6 leading-tight break-words line-clamp-2">{featuredBlog.title}</h3>
-                <p className="text-sm md:text-lg opacity-90 line-clamp-2 font-light max-w-2xl leading-relaxed break-words">
-                  {featuredBlog.content}
-                </p>
                 <div className="mt-8">
                   <span className="text-[10px] uppercase tracking-widest border-b border-white pb-1">Read Full Entry</span>
                 </div>
@@ -683,124 +890,38 @@ const HomePage: React.FC<{
   );
 };
 
-// CategoryPage Component
-const CategoryPage: React.FC<{ 
-  category: Category, 
-  items: PortfolioItem[], 
-  onItemClick: (item: PortfolioItem) => void 
-}> = ({ category, items, onItemClick }) => {
-  const filteredItems = items.filter(item => item.category === category);
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-20 animate-in fade-in">
-      <div className="text-center mb-20">
-        <h1 className="text-5xl serif mb-4">{category}</h1>
-        <p className="text-xs uppercase tracking-[0.3em] text-[#A09885]">The Complete Collection</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {filteredItems.map(item => (
-          <div key={item.id} className="flex flex-col cursor-pointer group" onClick={() => onItemClick(item)}>
-            <div className="aspect-[9/16] overflow-hidden mb-6 bg-[#E5E0D5] relative shadow-sm">
-              <img src={item.imageUrls[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-700" />
-            </div>
-            <p className="text-[10px] uppercase tracking-widest text-[#706C61] mb-2 break-all line-clamp-2 min-h-[1.5em]">{item.subtitle}</p>
-            <h3 className="text-xl serif mb-4 group-hover:italic transition-all break-all line-clamp-2 min-h-[2.4em]">{item.title}</h3>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// JournalPage Component
-const JournalPage: React.FC<{ 
-  blogs: BlogPost[], 
-  onBlogClick: (blog: BlogPost) => void 
-}> = ({ blogs, onBlogClick }) => {
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-20 animate-in fade-in">
-      <div className="text-center mb-20">
-        <h1 className="text-5xl serif mb-4">Journal</h1>
-        <p className="text-xs uppercase tracking-[0.3em] text-[#A09885]">Notes on a creative life</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-        {blogs.map(post => (
-          <JournalCard key={post.id} post={post} onClick={onBlogClick} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// BlogDetail Component
-const BlogDetail: React.FC<{ 
-  post: BlogPost | null, 
-  onClose: () => void 
-}> = ({ post, onClose }) => {
-  if (!post) return null;
-  return (
-    <div className="fixed inset-0 z-[100] bg-[#F9F7F2] overflow-y-auto animate-in slide-in-from-bottom duration-500">
-      <button onClick={onClose} className="fixed top-8 right-8 p-2 text-[#2C2C2C] hover:scale-110 transition-transform z-[110]">
-        <X size={32} strokeWidth={1} />
-      </button>
-      <div className="max-w-4xl mx-auto px-4 py-32">
-        <div className="mb-12 text-center">
-          <p className="text-xs uppercase tracking-widest text-[#A09885] mb-4">{post.date}</p>
-          <h1 className="text-4xl md:text-6xl serif leading-tight mb-8 break-all">{post.title}</h1>
-          <p className="text-xs uppercase tracking-[0.2em] text-[#706C61]">By {post.author}</p>
-        </div>
-        <div className="aspect-[16/9] mb-16 overflow-hidden bg-[#E5E0D5]">
-          <img src={post.imageUrls[0]} alt={post.title} className="w-full h-full object-cover" />
-        </div>
-        <div className="max-w-2xl mx-auto">
-          <p className="text-lg leading-relaxed text-[#2C2C2C] font-light whitespace-pre-wrap break-all">{post.content}</p>
-          {post.imageUrls.length > 1 && (
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {post.imageUrls.slice(1).map((img, idx) => (
-                <div key={idx} className="aspect-[9/16] overflow-hidden">
-                  <img src={img} className="w-full h-full object-cover" alt={`${post.title} gallery ${idx}`} />
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-20 pt-8 border-t border-[#E5E0D5] flex justify-center">
-            <button onClick={onClose} className="px-10 py-3 border border-[#2C2C2C] text-xs uppercase tracking-widest hover:bg-[#2C2C2C] hover:text-white transition-all">
-              Back to Journal
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Main App
 const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_portfolio_v4');
+      const saved = localStorage.getItem('elena_portfolio_v7');
       return saved ? JSON.parse(saved) : INITIAL_PORTFOLIO;
     } catch (e) { return INITIAL_PORTFOLIO; }
   });
 
   const [blogs, setBlogs] = useState<BlogPost[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_blogs_v4');
+      const saved = localStorage.getItem('elena_blogs_v7');
       return saved ? JSON.parse(saved) : INITIAL_BLOGS;
     } catch (e) { return INITIAL_BLOGS; }
   });
 
   const [subscribers, setSubscribers] = useState<Subscriber[]>(() => {
     try {
-      const saved = localStorage.getItem('elena_subscribers_v4');
+      const saved = localStorage.getItem('elena_subscribers_v7');
       return saved ? JSON.parse(saved) : [];
     } catch (e) { return []; }
   });
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
     try {
-      const saved = localStorage.getItem('elena_settings_v4');
+      const saved = localStorage.getItem('elena_settings_v7');
       return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
     } catch (e) { return INITIAL_SETTINGS; }
+  });
+
+  const [adminAuthKey, setAdminAuthKey] = useState(() => {
+    return localStorage.getItem('elena_admin_secret') || K;
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('elena_auth') === 'true');
@@ -810,25 +931,45 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('elena_portfolio_v4', JSON.stringify(portfolio));
-      localStorage.setItem('elena_blogs_v4', JSON.stringify(blogs));
-      localStorage.setItem('elena_subscribers_v4', JSON.stringify(subscribers));
-      localStorage.setItem('elena_settings_v4', JSON.stringify(siteSettings));
-    } catch (e) { console.error("Quota full?"); }
+      localStorage.setItem('elena_portfolio_v7', JSON.stringify(portfolio));
+      localStorage.setItem('elena_blogs_v7', JSON.stringify(blogs));
+      localStorage.setItem('elena_subscribers_v7', JSON.stringify(subscribers));
+      localStorage.setItem('elena_settings_v7', JSON.stringify(siteSettings));
+    } catch (e) { console.error("Storage Error"); }
   }, [portfolio, blogs, subscribers, siteSettings]);
 
   const handleSubscribe = (email: string) => {
     const newSub: Subscriber = {
       id: Math.random().toString(36).substr(2, 9),
       email,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     };
     setSubscribers([newSub, ...subscribers]);
-    setToastMessage('Successfully Submitted');
+    setToastMessage('Subscription confirmed');
+  };
+
+  const handleAdminLogin = (passwordAttempt: string) => {
+    // Allows login using EITHER the custom saved key OR the master key from K
+    if (passwordAttempt === adminAuthKey || passwordAttempt === K) {
+      setIsLoggedIn(true);
+      localStorage.setItem('elena_auth', 'true');
+      return true;
+    }
+    return false;
+  };
+
+  const handleUpdatePassword = (oldPass: string, newPass: string) => {
+    // Can only change the custom key if they know the current one (or the master recovery key)
+    if (oldPass === adminAuthKey || oldPass === K) {
+      setAdminAuthKey(newPass);
+      localStorage.setItem('elena_admin_secret', newPass);
+      return true;
+    }
+    return false;
   };
 
   const handleDeleteSubscriber = (id: string) => {
-    if (window.confirm('Are you sure you want to remove this subscriber?')) {
+    if (window.confirm('Remove subscriber?')) {
       setSubscribers(subscribers.filter(s => s.id !== id));
     }
   };
@@ -852,7 +993,8 @@ const App: React.FC = () => {
             <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={portfolio} onItemClick={setSelectedProject} />} />
             <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={portfolio} onItemClick={setSelectedProject} />} />
             <Route path="/journal" element={<JournalPage blogs={blogs} onBlogClick={setSelectedBlog} />} />
-            <Route path="/admin" element={
+            {/* The hidden route to access the studio dashboard */}
+            <Route path="/studio" element={
               isLoggedIn ? (
                 <AdminDashboard 
                   portfolio={portfolio} 
@@ -869,9 +1011,10 @@ const App: React.FC = () => {
                   onDeleteSubscriber={handleDeleteSubscriber}
                   onUpdateSubscriber={handleUpdateSubscriber}
                   onUpdateSettings={handleUpdateSettings}
+                  onUpdatePassword={handleUpdatePassword}
                 />
               ) : (
-                <AdminLogin onLogin={() => { setIsLoggedIn(true); localStorage.setItem('elena_auth', 'true'); }} />
+                <AdminLogin onLogin={handleAdminLogin} />
               )
             } />
           </Routes>

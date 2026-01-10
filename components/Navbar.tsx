@@ -13,49 +13,62 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Apparel', path: '/apparel' },
-    { name: 'Fibre Arts', path: '/fibre' },
-    { name: 'Visual Arts', path: '/visual' },
-    { name: 'Journal', path: '/journal' },
-    { name: 'Admin', path: '/admin' }
+    { name: settings.links.home, path: '/' },
+    { name: settings.links.apparel, path: '/apparel' },
+    { name: settings.links.fibre, path: '/fibre' },
+    { name: settings.links.visual, path: '/visual' },
+    { name: settings.links.journal, path: '/journal' }
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <nav className="sticky top-0 z-50 bg-[#F9F7F2]/90 backdrop-blur-sm border-b border-[#E5E0D5]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          {/* Logo */}
-          <Link to="/" className="text-2xl serif font-semibold tracking-tight hover:opacity-70 transition-opacity">
-            {settings.logo} <span className="text-xs tracking-widest block uppercase font-light -mt-1 italic">{settings.subtitle}</span>
+      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-12">
+        <div className="flex justify-between h-28 items-center">
+          {/* Logo Group - Left Aligned */}
+          <Link to="/" className="flex flex-col group transition-opacity hover:opacity-80">
+            <span className="text-3xl serif font-semibold tracking-tighter text-[#2C2C2C]">
+              {settings.logo}
+            </span>
+            <span className="text-2xl script text-[#A09885] -mt-2">
+              {settings.subtitle}
+            </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex space-x-10 items-center">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm uppercase tracking-widest hover:text-[#A09885] transition-colors ${
-                  isActive(link.path) ? 'text-[#2C2C2C] font-semibold' : 'text-[#706C61]'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <div className="flex items-center space-x-4 ml-6 border-l border-[#E5E0D5] pl-6 text-[#706C61]">
-              <Instagram size={18} className="cursor-pointer hover:text-black transition-colors" />
-              <Facebook size={18} className="cursor-pointer hover:text-black transition-colors" />
-              <Youtube size={18} className="cursor-pointer hover:text-black transition-colors" />
+          {/* Nav & Socials Group - Right Aligned */}
+          <div className="hidden md:flex items-center space-x-12">
+            <div className="flex space-x-10 items-center">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`text-[11px] uppercase tracking-[0.2em] hover:text-[#A09885] transition-colors ${
+                    isActive(link.path) ? 'text-[#2C2C2C] font-bold border-b-2 border-black pb-1' : 'text-[#706C61]'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+            
+            <div className="flex items-center space-x-6 border-l border-[#E5E0D5] pl-10 text-[#706C61]">
+              <a href={settings.socials.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">
+                <Instagram size={20} strokeWidth={1.5} />
+              </a>
+              <a href={settings.socials.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">
+                <Facebook size={20} strokeWidth={1.5} />
+              </a>
+              <a href={settings.socials.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">
+                <Youtube size={20} strokeWidth={1.5} />
+              </a>
             </div>
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
             <button onClick={() => setIsOpen(!isOpen)} className="text-[#2C2C2C] p-2">
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </div>
@@ -64,19 +77,30 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-[#F9F7F2] border-b border-[#E5E0D5] animate-in slide-in-from-top duration-300">
-          <div className="px-4 pt-2 pb-6 space-y-4">
+          <div className="px-6 pt-2 pb-8 space-y-6">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsOpen(false)}
-                className={`block text-lg serif tracking-wide ${
-                  isActive(link.path) ? 'text-black font-semibold' : 'text-[#706C61]'
+                className={`block text-xl serif tracking-wide ${
+                  isActive(link.path) ? 'text-black font-semibold underline underline-offset-8' : 'text-[#706C61]'
                 }`}
               >
                 {link.name}
               </Link>
             ))}
+            <div className="flex space-x-8 pt-6 border-t border-[#E5E0D5]">
+              <a href={settings.socials.instagram} target="_blank" rel="noopener noreferrer" className="text-[#706C61]">
+                <Instagram size={24} />
+              </a>
+              <a href={settings.socials.facebook} target="_blank" rel="noopener noreferrer" className="text-[#706C61]">
+                <Facebook size={24} />
+              </a>
+              <a href={settings.socials.youtube} target="_blank" rel="noopener noreferrer" className="text-[#706C61]">
+                <Youtube size={24} />
+              </a>
+            </div>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 interface AdminLoginProps {
-  onLogin: () => void;
+  onLogin: (password: string) => boolean;
 }
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
@@ -11,11 +11,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple mock logic: password is "admin123"
-    if (password === 'admin123') {
-      onLogin();
+    if (onLogin(password)) {
+      setError('');
     } else {
-      setError('Invalid credentials. Hint: use "admin123"');
+      setError('Invalid credentials.');
     }
   };
 
@@ -30,7 +29,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full p-3 border border-[#E5E0D5] outline-none focus:border-[#A09885] transition-colors"
-            placeholder="Enter password..."
+            placeholder="••••••"
           />
         </div>
         {error && <p className="text-red-500 text-xs italic">{error}</p>}

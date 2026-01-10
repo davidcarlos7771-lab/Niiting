@@ -29,6 +29,18 @@ export interface SiteSettings {
   navbar: {
     logo: string;
     subtitle: string;
+    links: {
+      home: string;
+      apparel: string;
+      fibre: string;
+      visual: string;
+      journal: string;
+    };
+    socials: {
+      instagram: string;
+      facebook: string;
+      youtube: string;
+    };
   };
   hero: {
     tag: string;
@@ -44,8 +56,11 @@ export interface SiteSettings {
   };
   homeSections: {
     apparelTitle: string;
+    apparelTag: string;
     fibreTitle: string;
+    fibreTag: string;
     visualTitle: string;
+    visualTag: string;
     archiveTitle: string;
     archiveTag: string;
   };
