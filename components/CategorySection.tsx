@@ -13,8 +13,15 @@ interface CategorySectionProps {
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link, onItemClick, customTitle, customTag }) => {
-  // Always grab top 4 for the grid logic
-  const displayItems = items.filter(item => item.category === category).slice(0, 4);
+  // Always grab top 4 for the grid logic, sorting by pinned first
+  const displayItems = items
+    .filter(item => item.category === category)
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.createdAt - a.createdAt;
+    })
+    .slice(0, 4);
 
   return (
     <section className="py-24 px-4 md:px-12 border-b border-[#E5E0D5]">
@@ -27,17 +34,17 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link
         {/* Responsive grid display logic: 1 col (mobile), 3 cols (tablet), 4 cols (PC) */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {displayItems.map((item, idx) => (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={`flex flex-col cursor-pointer group overflow-hidden
                 ${idx >= 1 ? 'hidden md:flex' : ''} 
                 ${idx >= 3 ? 'md:hidden lg:flex' : ''}`}
               onClick={() => onItemClick(item)}
             >
               <div className="aspect-[9/16] overflow-hidden mb-6 bg-[#E5E0D5] relative shadow-sm">
-                <img 
-                  src={item.imageUrls[0]} 
-                  alt={item.title} 
+                <img
+                  src={item.imageUrls[0]}
+                  alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
@@ -54,8 +61,8 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link
         </div>
 
         <div className="text-center mt-20">
-          <Link 
-            to={link} 
+          <Link
+            to={link}
             className="inline-block px-10 py-3 border border-[#2C2C2C] text-xs uppercase tracking-widest hover:bg-[#2C2C2C] hover:text-white transition-all"
           >
             View All {category}
