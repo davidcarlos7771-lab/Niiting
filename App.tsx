@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -9,7 +9,7 @@ import AdminLogin from './components/AdminLogin';
 import PortfolioGallery from './components/PortfolioGallery';
 import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
 import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS, K } from './constants';
-import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2, Settings, Globe, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, Camera, LogOut, Image as ImageIcon, X, Edit3, ChevronLeft, ChevronRight, Mail, Users, CheckCircle2, Settings, Globe, ShieldCheck, Pin, PinOff } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -96,13 +96,15 @@ const AdminDashboard: React.FC<{
   onDeleteBlog: (id: string) => void,
   onUpdateItem: (id: string, item: PortfolioItem) => void,
   onUpdateBlog: (id: string, blog: BlogPost) => void,
+  onTogglePinItem: (id: string) => void,
+  onTogglePinBlog: (id: string) => void,
   onDeleteSubscriber: (id: string) => void,
   onUpdateSubscriber: (id: string, email: string) => void,
   onUpdateSettings: (settings: SiteSettings) => void,
   onUpdatePassword: (old: string, updated: string) => boolean
 }> = ({ 
   portfolio, blogs, subscribers, siteSettings, onLogout, 
-  onAddItem, onAddBlog, onDeleteItem, onDeleteBlog, onUpdateItem, onUpdateBlog,
+  onAddItem, onAddBlog, onDeleteItem, onDeleteBlog, onUpdateItem, onUpdateBlog, onTogglePinItem, onTogglePinBlog,
   onDeleteSubscriber, onUpdateSubscriber, onUpdateSettings, onUpdatePassword
 }) => {
   const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers' | 'settings' | 'security'>('portfolio');
@@ -617,15 +619,25 @@ const AdminDashboard: React.FC<{
               {activeTab === 'portfolio' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {portfolio.map(item => (
-                    <div key={item.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4">
+                    <div key={item.id} className={`p-4 border border-[#E5E0D5] flex items-center space-x-4 transition-colors ${item.pinned ? 'bg-[#F9F7F2] border-[#A09885]' : 'bg-white'}`}>
                       <div className="w-12 h-20 flex-shrink-0 bg-[#E5E0D5] overflow-hidden">
                         <img src={item.imageUrls[0]} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="serif text-lg truncate">{item.title}</h4>
+                        <h4 className="serif text-lg truncate flex items-center gap-2">
+                          {item.title}
+                          {item.pinned && <Pin size={12} className="text-[#A09885]" />}
+                        </h4>
                         <p className="text-[10px] uppercase text-[#A09885]">{item.category}</p>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1">
+                        <button 
+                          onClick={() => onTogglePinItem(item.id)} 
+                          title={item.pinned ? "Unpin from Top" : "Pin to Top"}
+                          className={`p-2 transition-colors ${item.pinned ? 'text-[#A09885]' : 'text-[#D5D0C5] hover:text-[#A09885]'}`}
+                        >
+                          {item.pinned ? <PinOff size={18} /> : <Pin size={18} />}
+                        </button>
                         <button onClick={() => handleEditPortfolio(item)} className="p-2 text-[#706C61] hover:text-black">
                           <Edit3 size={18} />
                         </button>
@@ -640,15 +652,25 @@ const AdminDashboard: React.FC<{
               {activeTab === 'blog' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {blogs.map(blog => (
-                    <div key={blog.id} className="bg-white p-4 border border-[#E5E0D5] flex items-center space-x-4">
+                    <div key={blog.id} className={`p-4 border border-[#E5E0D5] flex items-center space-x-4 transition-colors ${blog.pinned ? 'bg-[#F9F7F2] border-[#A09885]' : 'bg-white'}`}>
                       <div className="w-12 h-20 flex-shrink-0 bg-[#E5E0D5] overflow-hidden">
                         <img src={blog.imageUrls[0]} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="serif text-lg truncate">{blog.title}</h4>
+                        <h4 className="serif text-lg truncate flex items-center gap-2">
+                          {blog.title}
+                          {blog.pinned && <Pin size={12} className="text-[#A09885]" />}
+                        </h4>
                         <p className="text-[10px] uppercase text-[#A09885]">{blog.date}</p>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1">
+                        <button 
+                          onClick={() => onTogglePinBlog(blog.id)} 
+                          title={blog.pinned ? "Unpin from Top" : "Pin to Top"}
+                          className={`p-2 transition-colors ${blog.pinned ? 'text-[#A09885]' : 'text-[#D5D0C5] hover:text-[#A09885]'}`}
+                        >
+                          {blog.pinned ? <PinOff size={18} /> : <Pin size={18} />}
+                        </button>
                         <button onClick={() => handleEditBlog(blog)} className="p-2 text-[#706C61] hover:text-black">
                           <Edit3 size={18} />
                         </button>
@@ -715,6 +737,11 @@ const CategoryPage: React.FC<{
                   alt={item.title} 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                 />
+                {item.pinned && (
+                  <div className="absolute top-4 left-4 bg-[#2C2C2C] text-white p-2">
+                    <Pin size={12} />
+                  </div>
+                )}
                 {item.imageUrls.length > 1 && (
                   <div className="absolute bottom-4 right-4 bg-white/90 px-2 py-1 text-[8px] uppercase tracking-widest">
                     +{item.imageUrls.length - 1} Images
@@ -864,6 +891,11 @@ const HomePage: React.FC<{
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
+                {featuredBlog.pinned && (
+                  <div className="absolute top-4 left-4 bg-white/20 p-2 backdrop-blur-sm">
+                    <Pin size={16} />
+                  </div>
+                )}
                 <p className="text-[10px] md:text-xs uppercase tracking-[0.3em] opacity-80 mb-4">{featuredBlog.date}</p>
                 <h3 className="text-3xl md:text-6xl serif mb-6 leading-tight break-words line-clamp-2">{featuredBlog.title}</h3>
                 <div className="mt-8">
@@ -905,6 +937,24 @@ const App: React.FC = () => {
       return saved ? JSON.parse(saved) : INITIAL_BLOGS;
     } catch (e) { return INITIAL_BLOGS; }
   });
+
+  // Derived sorted data: Pinned items first, then reverse chronological
+  const sortedPortfolio = useMemo(() => {
+    return [...portfolio].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return b.createdAt - a.createdAt;
+    });
+  }, [portfolio]);
+
+  const sortedBlogs = useMemo(() => {
+    return [...blogs].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      // Note: Comparing dates as strings might be imprecise, but we'll assume they follow a pattern or just stick to newest in array
+      return 0; 
+    });
+  }, [blogs]);
 
   const [subscribers, setSubscribers] = useState<Subscriber[]>(() => {
     try {
@@ -982,23 +1032,31 @@ const App: React.FC = () => {
     setSiteSettings(newSettings);
   };
 
+  const handleTogglePinItem = (id: string) => {
+    setPortfolio(portfolio.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
+  };
+
+  const handleTogglePinBlog = (id: string) => {
+    setBlogs(blogs.map(b => b.id === id ? { ...b, pinned: !b.pinned } : b));
+  };
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col selection:bg-[#E5E0D5]">
         <Navbar settings={siteSettings.navbar} />
         <div className="flex-grow">
           <Routes>
-            <Route path="/" element={<HomePage portfolio={portfolio} blogs={blogs} siteSettings={siteSettings} onItemClick={setSelectedProject} onBlogClick={setSelectedBlog} />} />
-            <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={portfolio} onItemClick={setSelectedProject} />} />
-            <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={portfolio} onItemClick={setSelectedProject} />} />
-            <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={portfolio} onItemClick={setSelectedProject} />} />
-            <Route path="/journal" element={<JournalPage blogs={blogs} onBlogClick={setSelectedBlog} />} />
+            <Route path="/" element={<HomePage portfolio={sortedPortfolio} blogs={sortedBlogs} siteSettings={siteSettings} onItemClick={setSelectedProject} onBlogClick={setSelectedBlog} />} />
+            <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={sortedPortfolio} onItemClick={setSelectedProject} />} />
+            <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={sortedPortfolio} onItemClick={setSelectedProject} />} />
+            <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={sortedPortfolio} onItemClick={setSelectedProject} />} />
+            <Route path="/journal" element={<JournalPage blogs={sortedBlogs} onBlogClick={setSelectedBlog} />} />
             {/* The hidden route to access the studio dashboard */}
             <Route path="/studio" element={
               isLoggedIn ? (
                 <AdminDashboard 
-                  portfolio={portfolio} 
-                  blogs={blogs} 
+                  portfolio={sortedPortfolio} 
+                  blogs={sortedBlogs} 
                   subscribers={subscribers}
                   siteSettings={siteSettings}
                   onLogout={() => { setIsLoggedIn(false); localStorage.removeItem('elena_auth'); }}
@@ -1008,6 +1066,8 @@ const App: React.FC = () => {
                   onDeleteBlog={(id) => setBlogs(blogs.filter(b => b.id !== id))}
                   onUpdateItem={(id, updated) => setPortfolio(portfolio.map(p => p.id === id ? updated : p))}
                   onUpdateBlog={(id, updated) => setBlogs(blogs.map(b => b.id === id ? updated : b))}
+                  onTogglePinItem={handleTogglePinItem}
+                  onTogglePinBlog={handleTogglePinBlog}
                   onDeleteSubscriber={handleDeleteSubscriber}
                   onUpdateSubscriber={handleUpdateSubscriber}
                   onUpdateSettings={handleUpdateSettings}

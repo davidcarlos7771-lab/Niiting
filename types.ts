@@ -14,6 +14,7 @@ export interface PortfolioItem {
   description: string;
   imageUrls: string[];
   createdAt: number;
+  pinned?: boolean;
 }
 
 export interface BlogPost {
@@ -23,6 +24,7 @@ export interface BlogPost {
   content: string;
   imageUrls: string[];
   author: string;
+  pinned?: boolean;
 }
 
 export interface SiteSettings {

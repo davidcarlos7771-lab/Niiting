@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { BlogPost } from '../types';
+import { Pin } from 'lucide-react';
 
 interface JournalCardProps {
   post: BlogPost;
@@ -20,6 +21,11 @@ const JournalCard: React.FC<JournalCardProps> = ({ post, featured = false, onCli
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors"></div>
+          {post.pinned && (
+            <div className="absolute top-4 left-4 z-20 bg-white/20 p-2 backdrop-blur-sm text-white">
+              <Pin size={16} />
+            </div>
+          )}
           <div className="relative z-10 w-full p-8 md:p-12 text-white text-center">
             <p className="text-xs uppercase tracking-widest mb-4 opacity-80">Featured Entry</p>
             <h3 className="text-3xl md:text-5xl serif leading-tight break-all mb-6 max-w-[90%] mx-auto line-clamp-2">{post.title}</h3>
@@ -40,6 +46,11 @@ const JournalCard: React.FC<JournalCardProps> = ({ post, featured = false, onCli
           alt={post.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />
+        {post.pinned && (
+          <div className="absolute top-4 left-4 bg-[#2C2C2C] text-white p-2">
+            <Pin size={12} />
+          </div>
+        )}
         {post.imageUrls.length > 1 && (
           <div className="absolute bottom-4 right-4 bg-white/90 px-2 py-1 text-[8px] uppercase tracking-widest">
             +{post.imageUrls.length - 1} Images
