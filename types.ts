@@ -61,10 +61,13 @@ export interface SiteSettings {
   homeSections: {
     apparelTitle: string;
     apparelTag: string;
+    apparelButtonText: string;
     fibreTitle: string;
     fibreTag: string;
+    fibreButtonText: string;
     visualTitle: string;
     visualTag: string;
+    visualButtonText: string;
     archiveTitle: string;
     archiveTag: string;
   };

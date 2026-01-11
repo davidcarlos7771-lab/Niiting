@@ -10,9 +10,10 @@ interface CategorySectionProps {
   onItemClick: (item: PortfolioItem) => void;
   customTitle?: string;
   customTag?: string;
+  buttonText?: string;
 }
 
-const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link, onItemClick, customTitle, customTag }) => {
+const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link, onItemClick, customTitle, customTag, buttonText }) => {
   // Always grab top 4 for the grid logic
   const displayItems = items.filter(item => item.category === category).slice(0, 4);
 
@@ -58,7 +59,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, items, link
             to={link} 
             className="inline-block px-10 py-3 border border-[#2C2C2C] text-xs uppercase tracking-widest hover:bg-[#2C2C2C] hover:text-white transition-all"
           >
-            View All {category}
+            {buttonText || `View All ${category}`}
           </Link>
         </div>
       </div>

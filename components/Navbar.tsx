@@ -36,8 +36,8 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
             </span>
           </Link>
 
-          {/* Nav & Socials Group - Right Aligned */}
-          <div className="hidden md:flex items-center space-x-12">
+          {/* Nav & Socials Group - Hidden on Mobile and Tablet (below 1024px) */}
+          <div className="hidden lg:flex items-center space-x-12">
             <div className="flex space-x-10 items-center">
               {navLinks.map((link) => (
                 <Link
@@ -65,8 +65,8 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
             </div>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile/Tablet Menu Button - Visible below 1024px */}
+          <div className="lg:hidden flex items-center">
             <button onClick={() => setIsOpen(!isOpen)} className="text-[#2C2C2C] p-2">
               {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -74,9 +74,9 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile/Tablet Menu */}
       {isOpen && (
-        <div className="md:hidden bg-[#F9F7F2] border-b border-[#E5E0D5] animate-in slide-in-from-top duration-300">
+        <div className="lg:hidden bg-[#F9F7F2] border-b border-[#E5E0D5] animate-in slide-in-from-top duration-300">
           <div className="px-6 pt-2 pb-8 space-y-6">
             {navLinks.map((link) => (
               <Link

@@ -40,10 +40,13 @@ export const INITIAL_SETTINGS: SiteSettings = {
   homeSections: {
     apparelTitle: 'Featured Collections',
     apparelTag: 'Apparel Design',
+    apparelButtonText: 'View All Apparel',
     fibreTitle: 'Featured Collections',
     fibreTag: 'Fibre Arts',
+    fibreButtonText: 'View All Fibre',
     visualTitle: 'Featured Collections',
     visualTag: 'Visual Arts',
+    visualButtonText: 'View All Visuals',
     archiveTitle: 'Recent Journal Entries',
     archiveTag: 'The Archive'
   }
