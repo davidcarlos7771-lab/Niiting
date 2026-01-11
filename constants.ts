@@ -7,6 +7,8 @@ const a = 'admin123';
 export const K = a;
 
 export const INITIAL_SETTINGS: SiteSettings = {
+  tabTitle: "JoJo's Artisanal Journal",
+  faviconUrl: "https://raw.githubusercontent.com/lucide-react/lucide/main/icons/flower-2.svg",
   navbar: {
     logo: 'JOJO',
     subtitle: 'My Artisanal Story',

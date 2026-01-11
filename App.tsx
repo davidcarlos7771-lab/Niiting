@@ -134,7 +134,7 @@ const AdminDashboard: React.FC<{
     }
   }, [activeTab, editingId]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight' | 'favicon') => {
     const files = e.target.files;
     if (files && files[0]) {
       const reader = new FileReader();
@@ -146,6 +146,8 @@ const AdminDashboard: React.FC<{
           setTempSettings({ ...tempSettings, hero: { ...tempSettings.hero, imageLeft: result } });
         } else if (target === 'heroRight') {
           setTempSettings({ ...tempSettings, hero: { ...tempSettings.hero, imageRight: result } });
+        } else if (target === 'favicon') {
+          setTempSettings({ ...tempSettings, faviconUrl: result });
         }
       };
       reader.readAsDataURL(files[0]);
@@ -427,6 +429,33 @@ const AdminDashboard: React.FC<{
                     onChange={e => setTempSettings({...tempSettings, navbar: {...tempSettings.navbar, subtitle: e.target.value}})}
                     className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
                   />
+                </div>
+              </div>
+
+              <div className="bg-[#F9F7F2] p-4 rounded border border-[#E5E0D5]">
+                <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Browser Config</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] uppercase text-[#A09885] mb-1">Tab Title</label>
+                    <input 
+                      placeholder="Browser Tab Title" 
+                      value={tempSettings.tabTitle} 
+                      onChange={e => setTempSettings({...tempSettings, tabTitle: e.target.value})}
+                      className="w-full p-2 border border-[#E5E0D5] outline-none text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase text-[#A09885] mb-1">Tab Icon (Favicon)</label>
+                    <div className="relative border-2 border-dashed border-[#E5E0D5] rounded-lg p-4 text-center hover:border-[#A09885] transition-colors cursor-pointer bg-white">
+                      {tempSettings.faviconUrl ? (
+                        <img src={tempSettings.faviconUrl} className="w-8 h-8 mx-auto mb-2 object-contain" />
+                      ) : (
+                        <ImageIcon size={24} className="text-[#A09885] mb-2 mx-auto" />
+                      )}
+                      <p className="text-[10px] text-[#A09885] uppercase">Upload Icon</p>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'favicon')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -951,7 +980,7 @@ const App: React.FC = () => {
     return [...blogs].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      // Note: Comparing dates as strings might be imprecise, but we'll assume they follow a pattern or just stick to newest in array
+      // Simple tie-breaker for blogs
       return 0; 
     });
   }, [blogs]);
@@ -988,6 +1017,22 @@ const App: React.FC = () => {
     } catch (e) { console.error("Storage Error"); }
   }, [portfolio, blogs, subscribers, siteSettings]);
 
+  // Sync Browser Tab Title and Favicon
+  useEffect(() => {
+    if (siteSettings.tabTitle) {
+      document.title = siteSettings.tabTitle;
+    }
+    if (siteSettings.faviconUrl) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = siteSettings.faviconUrl;
+    }
+  }, [siteSettings.tabTitle, siteSettings.faviconUrl]);
+
   const handleSubscribe = (email: string) => {
     const newSub: Subscriber = {
       id: Math.random().toString(36).substr(2, 9),
@@ -999,7 +1044,6 @@ const App: React.FC = () => {
   };
 
   const handleAdminLogin = (passwordAttempt: string) => {
-    // Allows login using EITHER the custom saved key OR the master key from K
     if (passwordAttempt === adminAuthKey || passwordAttempt === K) {
       setIsLoggedIn(true);
       localStorage.setItem('elena_auth', 'true');
@@ -1009,7 +1053,6 @@ const App: React.FC = () => {
   };
 
   const handleUpdatePassword = (oldPass: string, newPass: string) => {
-    // Can only change the custom key if they know the current one (or the master recovery key)
     if (oldPass === adminAuthKey || oldPass === K) {
       setAdminAuthKey(newPass);
       localStorage.setItem('elena_admin_secret', newPass);
@@ -1051,7 +1094,6 @@ const App: React.FC = () => {
             <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={sortedPortfolio} onItemClick={setSelectedProject} />} />
             <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={sortedPortfolio} onItemClick={setSelectedProject} />} />
             <Route path="/journal" element={<JournalPage blogs={sortedBlogs} onBlogClick={setSelectedBlog} />} />
-            {/* The hidden route to access the studio dashboard */}
             <Route path="/studio" element={
               isLoggedIn ? (
                 <AdminDashboard 

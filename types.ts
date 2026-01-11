@@ -28,6 +28,8 @@ export interface BlogPost {
 }
 
 export interface SiteSettings {
+  tabTitle: string;
+  faviconUrl: string;
   navbar: {
     logo: string;
     subtitle: string;
