@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BlogPost } from '../types';
 import { Pin } from 'lucide-react';
@@ -7,10 +6,19 @@ interface JournalCardProps {
   post: BlogPost;
   featured?: boolean;
   onClick?: (post: BlogPost) => void;
-  className?: string; // Allow passing visibility classes
+  className?: string;
 }
 
 const JournalCard: React.FC<JournalCardProps> = ({ post, featured = false, onClick, className = "" }) => {
+  // Helper to strip HTML tags for the text preview excerpt
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+
+  const plainTextExcerpt = stripHtml(post.content);
+
   if (featured) {
     return (
       <div className={`group cursor-pointer mb-20 ${className}`} onClick={() => onClick?.(post)}>
@@ -30,7 +38,7 @@ const JournalCard: React.FC<JournalCardProps> = ({ post, featured = false, onCli
             <p className="text-xs uppercase tracking-widest mb-4 opacity-80">Featured Entry</p>
             <h3 className="text-3xl md:text-5xl serif leading-tight break-all mb-6 max-w-[90%] mx-auto line-clamp-2">{post.title}</h3>
             <div className="inline-block border-b border-white pb-1">
-              <span className="text-[10px] uppercase tracking-widest">Read Full Narrative</span>
+              <span className="text-[10px] uppercase tracking-widest">READ THE STORY</span>
             </div>
           </div>
         </div>
@@ -59,7 +67,11 @@ const JournalCard: React.FC<JournalCardProps> = ({ post, featured = false, onCli
       </div>
       <p className="text-[10px] uppercase tracking-widest text-[#706C61] mb-2">{post.date}</p>
       <h3 className="text-xl serif mb-3 group-hover:italic transition-all break-all line-clamp-2 min-h-[2.4em]">{post.title}</h3>
-      <p className="text-sm text-[#706C61] font-light line-clamp-3 leading-relaxed mb-4 break-all">{post.content}</p>
+      
+      {/* Three-line text preview and Read More button are always visible */}
+      <p className="text-sm text-[#706C61] font-light line-clamp-3 leading-relaxed mb-4 break-all">
+        {plainTextExcerpt}
+      </p>
       <button className="text-[10px] uppercase tracking-widest border-b border-black pb-1 self-start">Read More</button>
     </div>
   );

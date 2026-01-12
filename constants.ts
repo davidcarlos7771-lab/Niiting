@@ -49,6 +49,10 @@ export const INITIAL_SETTINGS: SiteSettings = {
     visualButtonText: 'View All Visuals',
     archiveTitle: 'Recent Journal Entries',
     archiveTag: 'The Archive'
+  },
+  integrations: {
+    supabaseUrl: '',
+    supabaseAnonKey: ''
   }
 };
 
@@ -194,6 +198,14 @@ export const INITIAL_BLOGS: BlogPost[] = [
     date: 'October 22, 2024',
     content: 'A deep dive into how fiber can communicate emotions that words often fail to capture. Rough wool vs. smooth silk tells a story of conflict and resolution.',
     imageUrls: ['https://images.unsplash.com/photo-1444491741275-3747c53c99b4?auto=format&fit=crop&q=80&w=1000'],
+    author: 'Elena'
+  },
+  {
+    id: 'b5',
+    title: 'A Study in Scarlet',
+    date: 'October 18, 2024',
+    content: 'Working with natural dyes to achieve the perfect red. It requires patience, temperature control, and a willingness to accept imperfection.',
+    imageUrls: ['https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&q=80&w=1000'],
     author: 'Elena'
   }
 ];

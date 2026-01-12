@@ -71,6 +71,10 @@ export interface SiteSettings {
     archiveTitle: string;
     archiveTag: string;
   };
+  integrations: {
+    supabaseUrl: string;
+    supabaseAnonKey: string;
+  };
 }
 
 export interface User {
