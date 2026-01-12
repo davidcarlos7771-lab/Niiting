@@ -55,13 +55,13 @@ export const INITIAL_SETTINGS: SiteSettings = {
     contactEmail: 'jojo@niiting.com'
   },
   homeSections: {
-    apparelTitle: 'Featured Collections',
+    apparelTitle: 'Collections',
     apparelTag: 'Apparel Design',
     apparelButtonText: 'View All Apparel',
-    fibreTitle: 'Featured Collections',
+    fibreTitle: 'Collections',
     fibreTag: 'Fibre Arts',
     fibreButtonText: 'View All Fibre',
-    visualTitle: 'Featured Collections',
+    visualTitle: 'Collections',
     visualTag: 'Visual Arts',
     visualButtonText: 'View All Visuals',
     archiveTitle: 'Recent Journal Entries',
