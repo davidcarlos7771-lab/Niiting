@@ -27,13 +27,18 @@ const Navbar: React.FC<NavbarProps> = ({ settings }) => {
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-12">
         <div className="flex justify-between h-28 items-center">
           {/* Logo Group - Left Aligned */}
-          <Link to="/" className="flex flex-col group transition-opacity hover:opacity-80">
-            <span className="text-3xl serif font-semibold tracking-tighter text-[#2C2C2C]">
-              {settings.logo}
-            </span>
-            <span className="text-2xl script text-[#A09885] -mt-2">
-              {settings.subtitle}
-            </span>
+          <Link to="/" className="flex items-center gap-4 group transition-opacity hover:opacity-80">
+            {settings.logoImage && (
+              <img src={settings.logoImage} alt="Logo" className="h-12 w-auto object-contain" />
+            )}
+            <div className="flex flex-col">
+              <span className="text-3xl serif font-semibold tracking-tighter text-[#2C2C2C] leading-none">
+                {settings.logo}
+              </span>
+              <span className="text-2xl script text-[#A09885] -mt-1 leading-none">
+                {settings.subtitle}
+              </span>
+            </div>
           </Link>
 
           {/* Nav & Socials Group - Hidden on Mobile and Tablet (below 1024px) */}

@@ -10,6 +10,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
   tabTitle: "JoJo's Artisanal Journal",
   faviconUrl: "https://raw.githubusercontent.com/lucide-react/lucide/main/icons/flower-2.svg",
   navbar: {
+    logoImage: '',
     logo: 'JOJO',
     subtitle: 'My Artisanal Story',
     links: {

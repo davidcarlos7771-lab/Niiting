@@ -31,6 +31,7 @@ export interface SiteSettings {
   tabTitle: string;
   faviconUrl: string;
   navbar: {
+    logoImage: string;
     logo: string;
     subtitle: string;
     links: {

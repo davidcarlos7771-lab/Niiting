@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -8,8 +9,7 @@ import AdminLogin from './components/AdminLogin';
 import PortfolioGallery from './components/PortfolioGallery';
 import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
 import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS, K } from './constants';
-import { Trash2, LogOut, Image as ImageIcon, X, Edit3, Users, CheckCircle2, Settings, Globe, ShieldCheck, Pin, PinOff, Download, Database, Calendar, Share2, Layout, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { Trash2, LogOut, Image as ImageIcon, X, Edit3, Users, CheckCircle2, Settings, Globe, ShieldCheck, Pin, PinOff, Download, Database, Mail, ChevronLeft, ChevronRight, Share2, Layout } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -141,12 +141,11 @@ const AdminDashboard: React.FC<{
     resetForm();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight' | 'favicon') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight' | 'favicon' | 'logo') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     if (target === 'form') {
-      // Process multiple files for gallery/blog assets
       Array.from(files).forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -156,7 +155,6 @@ const AdminDashboard: React.FC<{
         reader.readAsDataURL(file);
       });
     } else {
-      // Process single file for settings
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
@@ -166,6 +164,8 @@ const AdminDashboard: React.FC<{
           setTempSettings(prev => ({ ...prev, hero: { ...prev.hero, imageRight: result } }));
         } else if (target === 'favicon') {
           setTempSettings(prev => ({ ...prev, faviconUrl: result }));
+        } else if (target === 'logo') {
+          setTempSettings(prev => ({ ...prev, navbar: { ...prev.navbar, logoImage: result } }));
         }
       };
       reader.readAsDataURL(files[0]);
@@ -264,7 +264,7 @@ const AdminDashboard: React.FC<{
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-12 min-h-screen animate-in fade-in">
       <div className="flex justify-between items-center mb-12 pb-6 border-b border-[#E5E0D5]">
-        <h1 className="text-4xl serif tracking-tight">Studio Workspace</h1>
+        <h1 className="text-4xl serif tracking-tight">Studio Management</h1>
         <button onClick={onLogout} className="flex items-center text-xs uppercase tracking-widest text-[#706C61] hover:text-black transition-colors">
           <LogOut size={16} className="mr-2" /> End Session
         </button>
@@ -311,6 +311,21 @@ const AdminDashboard: React.FC<{
                     <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
                       <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Share2 size={14} /> Identity & Socials</h3>
                       <div className="space-y-6">
+                        <div>
+                            <label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Navbar Logo Icon</label>
+                            <div className="flex gap-4 items-center mb-2">
+                             {tempSettings.navbar.logoImage && (
+                               <div className="w-12 h-12 bg-[#F9F7F2] border border-[#E5E0D5] p-2 flex items-center justify-center shrink-0">
+                                 <img src={tempSettings.navbar.logoImage} alt="Logo" className="w-full h-full object-contain" />
+                               </div>
+                             )}
+                             <div className="relative border border-dashed border-[#E5E0D5] py-3 px-4 text-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group flex-1">
+                                <ImageIcon size={14} className="mx-auto mb-1 text-[#A09885]" />
+                                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                <p className="text-[8px] uppercase tracking-widest">Upload Logo</p>
+                             </div>
+                          </div>
+                        </div>
                         <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Logo Text</label><input value={tempSettings.navbar.logo} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, logo: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
                         <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Subtitle</label><input value={tempSettings.navbar.subtitle} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, subtitle: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
                         <div className="pt-4 border-t border-[#E5E0D5]">
@@ -439,8 +454,9 @@ const AdminDashboard: React.FC<{
                 <button onClick={() => onUpdateSettings(tempSettings)} className="w-full py-6 bg-black text-white text-[11px] uppercase tracking-[0.4em] font-bold shadow-2xl sticky bottom-6">Confirm All Updates</button>
               </div>
             ) : (activeTab === 'portfolio' || activeTab === 'blog') ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-right duration-500">
-                <div className="space-y-6 bg-white border border-[#E5E0D5] p-8 h-fit sticky top-24 shadow-sm">
+              <div className={`grid gap-8 animate-in slide-in-from-right duration-500 ${activeTab === 'portfolio' ? 'grid-cols-1 xl:grid-cols-12' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {/* Form Section */}
+                <div className={`space-y-6 bg-white border border-[#E5E0D5] p-8 h-fit sticky top-24 shadow-sm ${activeTab === 'portfolio' ? 'xl:col-span-3' : ''}`}>
                   <h3 className="text-sm font-bold uppercase tracking-widest pb-4 border-b text-[#2C2C2C]">
                     {editingId ? `Edit ${activeTab === 'portfolio' ? 'Asset' : 'Post'}` : `New ${activeTab === 'portfolio' ? 'Asset' : 'Post'}`}
                   </h3>
@@ -500,26 +516,60 @@ const AdminDashboard: React.FC<{
                     {editingId && <button onClick={resetForm} className="w-full py-2 text-[10px] uppercase tracking-widest text-red-400">Cancel Edit</button>}
                   </div>
                 </div>
-                <div className="space-y-4">
+
+                {/* Explorer Section */}
+                <div className={`space-y-4 ${activeTab === 'portfolio' ? 'xl:col-span-9' : ''}`}>
                   <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A09885] mb-6">Archive Explorer</h3>
-                  <div className="space-y-3">
-                    {(activeTab === 'portfolio' ? portfolio : blogs).map((item: any) => (
-                      <div key={item.id} className={`p-4 bg-white border border-[#E5E0D5] flex items-center gap-6 group hover:shadow-md transition-all ${item.pinned ? 'border-l-4 border-l-[#A09885]' : ''}`}>
-                         <div className="w-16 h-20 bg-[#F9F7F2] overflow-hidden flex-shrink-0 shadow-sm rounded-sm">
-                           <img src={item.imageUrls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                         </div>
-                         <div className="flex-1 min-w-0">
-                           <h4 className="serif text-lg truncate mb-1 text-[#2C2C2C]">{item.title}</h4>
-                           <p className="text-[9px] uppercase tracking-widest text-[#A09885]">{activeTab === 'portfolio' ? item.category : item.date}</p>
-                         </div>
-                         <div className="flex gap-1">
-                            <button onClick={() => activeTab === 'portfolio' ? onTogglePinItem(item.id) : onTogglePinBlog(item.id)} className={`p-2 transition-all rounded-full hover:bg-[#F9F7F2] ${item.pinned ? 'text-[#A09885]' : 'text-[#E5E0D5] hover:text-[#A09885]'}`}>{item.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
-                            <button onClick={() => activeTab === 'portfolio' ? handleEditPortfolio(item) : handleEditBlog(item)} className="p-2 text-[#E5E0D5] hover:text-black hover:bg-[#F9F7F2] transition-all rounded-full"><Edit3 size={16} /></button>
-                            <button onClick={() => activeTab === 'portfolio' ? onDeleteItem(item.id) : onDeleteBlog(item.id)} className="p-2 text-[#E5E0D5] hover:text-red-500 hover:bg-red-50 transition-all rounded-full"><Trash2 size={16} /></button>
-                         </div>
-                      </div>
-                    ))}
-                  </div>
+                  
+                  {activeTab === 'portfolio' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[Category.APPAREL, Category.FIBRE, Category.VISUAL].map((cat) => (
+                        <div key={cat} className="space-y-4">
+                          <h4 className="text-xs uppercase tracking-widest text-[#706C61] border-b border-[#E5E0D5] pb-2 mb-2 font-bold">{cat}</h4>
+                          <div className="space-y-3">
+                            {portfolio.filter(p => p.category === cat).map((item) => (
+                              <div key={item.id} className={`p-3 bg-white border border-[#E5E0D5] flex items-center gap-4 group hover:shadow-md transition-all ${item.pinned ? 'border-l-4 border-l-[#A09885]' : ''}`}>
+                                <div className="w-12 h-16 bg-[#F9F7F2] overflow-hidden flex-shrink-0 shadow-sm rounded-sm">
+                                  <img src={item.imageUrls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="serif text-sm truncate mb-1 text-[#2C2C2C]">{item.title}</h4>
+                                  <p className="text-[8px] uppercase tracking-widest text-[#A09885] truncate">{item.subtitle}</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <button onClick={() => onTogglePinItem(item.id)} className={`p-1 transition-all rounded-full hover:bg-[#F9F7F2] ${item.pinned ? 'text-[#A09885]' : 'text-[#E5E0D5] hover:text-[#A09885]'}`}>{item.pinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
+                                    <button onClick={() => handleEditPortfolio(item)} className="p-1 text-[#E5E0D5] hover:text-black hover:bg-[#F9F7F2] transition-all rounded-full"><Edit3 size={14} /></button>
+                                    <button onClick={() => onDeleteItem(item.id)} className="p-1 text-[#E5E0D5] hover:text-red-500 hover:bg-red-50 transition-all rounded-full"><Trash2 size={14} /></button>
+                                </div>
+                              </div>
+                            ))}
+                            {portfolio.filter(p => p.category === cat).length === 0 && (
+                                <p className="text-[10px] italic text-[#E5E0D5]">No items in this collection.</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {blogs.map((item: any) => (
+                        <div key={item.id} className={`p-4 bg-white border border-[#E5E0D5] flex items-center gap-6 group hover:shadow-md transition-all ${item.pinned ? 'border-l-4 border-l-[#A09885]' : ''}`}>
+                           <div className="w-16 h-20 bg-[#F9F7F2] overflow-hidden flex-shrink-0 shadow-sm rounded-sm">
+                             <img src={item.imageUrls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <h4 className="serif text-lg truncate mb-1 text-[#2C2C2C]">{item.title}</h4>
+                             <p className="text-[9px] uppercase tracking-widest text-[#A09885]">{item.date}</p>
+                           </div>
+                           <div className="flex gap-1">
+                              <button onClick={() => onTogglePinBlog(item.id)} className={`p-2 transition-all rounded-full hover:bg-[#F9F7F2] ${item.pinned ? 'text-[#A09885]' : 'text-[#E5E0D5] hover:text-[#A09885]'}`}>{item.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
+                              <button onClick={() => handleEditBlog(item)} className="p-2 text-[#E5E0D5] hover:text-black hover:bg-[#F9F7F2] transition-all rounded-full"><Edit3 size={16} /></button>
+                              <button onClick={() => onDeleteBlog(item.id)} className="p-2 text-[#E5E0D5] hover:text-red-500 hover:bg-red-50 transition-all rounded-full"><Trash2 size={16} /></button>
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : activeTab === 'subscribers' ? (
@@ -554,7 +604,7 @@ const AdminDashboard: React.FC<{
   );
 };
 
-const App = () => {
+const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>(INITIAL_PORTFOLIO);
   const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
@@ -585,6 +635,24 @@ const App = () => {
     localStorage.setItem('siteSettings', JSON.stringify(siteSettings));
     localStorage.setItem('subscribers', JSON.stringify(subscribers));
   }, [portfolio, blogs, siteSettings, subscribers]);
+
+  const sortedPortfolio = useMemo(() => {
+      return [...portfolio].sort((a, b) => {
+        if (a.pinned === b.pinned) {
+            return b.createdAt - a.createdAt;
+        }
+        return a.pinned ? -1 : 1;
+      });
+  }, [portfolio]);
+
+  const sortedBlogs = useMemo(() => {
+      return [...blogs].sort((a, b) => {
+        if (a.pinned === b.pinned) {
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        return a.pinned ? -1 : 1;
+      });
+  }, [blogs]);
 
   const showToast = (msg: string) => setToastMessage(msg);
 
@@ -679,19 +747,19 @@ const App = () => {
     <Router>
       <ScrollToTop />
       <div className="min-h-screen bg-[#F9F7F2] text-[#2C2C2C] selection:bg-[#E5E0D5] selection:text-[#2C2C2C] font-sans">
-        {!isAdmin && <Navbar settings={siteSettings.navbar} />}
+        <Navbar settings={siteSettings.navbar} />
         
         <Routes>
-          <Route path="/" element={<HomePage portfolio={portfolio} blogs={blogs} siteSettings={siteSettings} onItemClick={setSelectedItem} onBlogClick={setSelectedBlog} />} />
-          <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={portfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={portfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={portfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/journal" element={<JournalPage blogs={blogs} onBlogClick={setSelectedBlog} />} />
+          <Route path="/" element={<HomePage portfolio={sortedPortfolio} blogs={sortedBlogs} siteSettings={siteSettings} onItemClick={setSelectedItem} onBlogClick={setSelectedBlog} />} />
+          <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
+          <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
+          <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
+          <Route path="/journal" element={<JournalPage blogs={sortedBlogs} onBlogClick={setSelectedBlog} />} />
           <Route path="/studio" element={
             isAdmin ? (
               <AdminDashboard 
-                portfolio={portfolio} 
-                blogs={blogs} 
+                portfolio={sortedPortfolio} 
+                blogs={sortedBlogs} 
                 subscribers={subscribers} 
                 siteSettings={siteSettings}
                 onLogout={handleLogout}
@@ -714,7 +782,7 @@ const App = () => {
           } />
         </Routes>
 
-        {!isAdmin && <Footer onSubscribe={handleSubscribe} settings={siteSettings.footer} />}
+        <Footer onSubscribe={handleSubscribe} settings={siteSettings.footer} />
 
         <PortfolioGallery item={selectedItem} onClose={() => setSelectedItem(null)} />
         {selectedBlog && <BlogDetail post={selectedBlog} onClose={() => setSelectedBlog(null)} />}
@@ -770,27 +838,57 @@ const BlogDetail: React.FC<{ post: BlogPost | null; onClose: () => void }> = ({ 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#F9F7F2] overflow-y-auto" onClick={onClose}>
-      <button onClick={onClose} className="fixed top-8 right-8 p-2 text-[#2C2C2C] z-[110]"><X size={32} strokeWidth={1} /></button>
-      <div className="max-w-4xl mx-auto px-6 py-24" onClick={(e) => e.stopPropagation()}>
-        <div className="text-center mb-12"><p className="text-xs uppercase tracking-widest text-[#706C61] mb-4">{post.date}</p><h1 className="text-4xl md:text-6xl serif mb-8 leading-tight">{post.title}</h1><div className="w-12 h-[1px] bg-[#2C2C2C] mx-auto"></div></div>
-        <div className="space-y-12">
-            <div className="relative aspect-[9/16] w-full max-w-2xl mx-auto overflow-hidden bg-[#E5E0D5] shadow-lg group">
-                <img src={post.imageUrls[currentIndex]} className="w-full h-full object-cover transition-opacity duration-500" />
+    <div 
+      className="fixed inset-0 z-[100] bg-[#F9F7F2]/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300 overflow-y-auto"
+      onClick={onClose}
+    >
+      <button 
+        onClick={onClose}
+        className="absolute top-8 right-8 p-2 text-[#2C2C2C] hover:scale-110 transition-transform hidden md:block z-[110]"
+      >
+        <X size={32} strokeWidth={1} />
+      </button>
+
+      <div className="w-full max-w-7xl px-4 md:px-12 flex flex-col md:flex-row items-center justify-center gap-12 py-12" onClick={(e) => e.stopPropagation()}>
+        
+        {/* Left Side: Image/Carousel */}
+        <div className="w-full md:w-auto flex justify-center relative group">
+            <div className="aspect-[9/16] h-[70vh] md:h-[80vh] overflow-hidden bg-[#E5E0D5] shadow-2xl relative">
+                <img src={post.imageUrls[currentIndex]} className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-500" alt={post.title} />
+                
                 {post.imageUrls.length > 1 && (
                     <>
-                    <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm"><ChevronLeft size={24} /></button>
-                    <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm"><ChevronRight size={24} /></button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    <button onClick={prev} className="absolute left-[-20px] md:left-4 top-1/2 -translate-y-1/2 bg-white/80 p-3 rounded-full hover:bg-white transition-colors shadow-sm"><ChevronLeft size={24} /></button>
+                    <button onClick={next} className="absolute right-[-20px] md:right-4 top-1/2 -translate-y-1/2 bg-white/80 p-3 rounded-full hover:bg-white transition-colors shadow-sm"><ChevronRight size={24} /></button>
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                         {post.imageUrls.map((_, idx) => (
-                        <div key={idx} className={`h-1 transition-all duration-300 ${idx === currentIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'}`} />
+                        <div key={idx} className={`h-1 transition-all duration-300 ${idx === currentIndex ? 'w-8 bg-[#2C2C2C]' : 'w-2 bg-[#2C2C2C]/20'}`} />
                         ))}
                     </div>
                     </>
                 )}
             </div>
-          <div className="prose prose-stone mx-auto">
-            <div className="text-lg md:text-xl leading-relaxed text-[#2C2C2C]" dangerouslySetInnerHTML={{ __html: post.content }} />
+        </div>
+
+        {/* Right Side: Text Content */}
+        <div className="w-full md:w-1/3 text-left bg-white/50 p-6 md:bg-transparent md:p-0 rounded-lg self-center">
+          <div className="flex items-center gap-4 mb-2">
+             <p className="text-xs uppercase tracking-[0.2em] text-[#706C61]">{post.date}</p>
+             <div className="w-8 h-[1px] bg-[#E5E0D5]"></div>
+             <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] italic">By {post.author}</p>
+          </div>
+          <h2 className="text-3xl md:text-5xl serif mb-4 leading-tight">{post.title}</h2>
+          <div className="w-12 h-[1px] bg-[#2C2C2C] mb-6"></div>
+          
+          <div className="prose prose-stone max-h-[40vh] overflow-y-auto pr-2 custom-scroll">
+            <div className="text-[#2C2C2C] font-light leading-relaxed text-base" dangerouslySetInnerHTML={{ __html: post.content }} />
+          </div>
+
+          <div className="flex justify-between items-center mt-8 pt-4 border-t border-[#E5E0D5]">
+             <p className="text-[10px] text-[#A09885] uppercase tracking-tighter">
+              Slide {currentIndex + 1} of {post.imageUrls.length}
+            </p>
+            <button onClick={onClose} className="md:hidden text-xs uppercase tracking-widest border-b border-black pb-1">Tap to close</button>
           </div>
         </div>
       </div>
