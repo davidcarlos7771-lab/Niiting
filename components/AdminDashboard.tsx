@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trash2, LogOut, Image as ImageIcon, X, Edit3, Users, Settings, Globe, ShieldCheck, Pin, PinOff, Download, Database, Mail, Share2, Layout, Map } from 'lucide-react';
 import { Category, PortfolioItem, BlogPost, SiteSettings, Subscriber } from '../types';
@@ -72,14 +71,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!files || files.length === 0) return;
 
     if (target === 'form') {
-      Array.from(files).forEach(file => {
+      // FIX: Changed from forEach to a for...of loop to resolve a type inference issue with FileList.
+      for (const file of files) {
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
           setNewImages(prev => [...prev, result]);
         };
         reader.readAsDataURL(file);
-      });
+      }
     } else {
       const reader = new FileReader();
       reader.onloadend = () => {

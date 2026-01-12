@@ -8,16 +8,20 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ settings }) => {
   return (
-    <section className="relative h-[85vh] overflow-hidden bg-[#E5E0D5]">
+    <section className="relative h-[85vh] overflow-hidden bg-[#F9F7F2]">
       <div className="absolute inset-0 flex flex-col lg:flex-row">
         {/* Left Image Section - Hidden on Mobile and Tablet (below lg) */}
         <div className="hidden lg:block lg:w-1/3 h-full relative overflow-hidden group">
-          <img 
-            src={settings.imageLeft} 
-            className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
-            alt="Crafting"
-          />
-          <div className="absolute inset-0 bg-black/10"></div>
+          {settings.imageLeft && (
+            <>
+              <img 
+                src={settings.imageLeft} 
+                className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
+                alt="Crafting"
+              />
+              <div className="absolute inset-0 bg-black/10"></div>
+            </>
+          )}
         </div>
         
         {/* Center Text Section - Always Visible, Full width on Mobile/Tablet */}
@@ -34,12 +38,16 @@ const Hero: React.FC<HeroProps> = ({ settings }) => {
 
         {/* Right Image Section - Hidden on Mobile and Tablet (below lg) */}
         <div className="hidden lg:block lg:w-1/3 h-full relative overflow-hidden group">
-          <img 
-            src={settings.imageRight} 
-            className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
-            alt="Linen Dress"
-          />
-          <div className="absolute inset-0 bg-black/10"></div>
+          {settings.imageRight && (
+            <>
+              <img 
+                src={settings.imageRight} 
+                className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-700" 
+                alt="Linen Dress"
+              />
+              <div className="absolute inset-0 bg-black/10"></div>
+            </>
+          )}
         </div>
       </div>
     </section>
