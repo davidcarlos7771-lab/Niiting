@@ -27,6 +27,12 @@ export interface BlogPost {
   pinned?: boolean;
 }
 
+export interface Subscriber {
+  id: string;
+  email: string;
+  date: string;
+}
+
 export interface SiteSettings {
   tabTitle: string;
   faviconUrl: string;
@@ -53,6 +59,16 @@ export interface SiteSettings {
     description: string;
     imageLeft: string;
     imageRight: string;
+  };
+  pageHeaders: {
+    apparelTitle: string;
+    apparelSubtitle: string;
+    fibreTitle: string;
+    fibreSubtitle: string;
+    visualTitle: string;
+    visualSubtitle: string;
+    journalTitle: string;
+    journalSubtitle: string;
   };
   footer: {
     subscribeTitle: string;

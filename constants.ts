@@ -1,10 +1,16 @@
 
 import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
 
-// Browser-based "soft" security key. 
-// If you forget your browser-set key, you can change 'admin123' here.
+// --- SECURITY CONFIGURATION ---
+// 1. Initial Admin Password (fallback until you change it in the dashboard)
 const a = 'admin123';
 export const K = a;
+
+// 2. SUPABASE KEYS (REQUIRED FOR PUBLIC VISITORS)
+// You must replace these with your actual keys from Supabase Project Settings -> API
+export const SUPABASE_URL = 'https://rgiwfnayoztxrzicgnni.supabase.co'; 
+// IMPORTANT: Click the "Copy" button in your Supabase dashboard (API Keys -> anon public) and paste it inside the quotes below:
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnaXdmbmF5b3p0eHJ6aWNnbm5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNTYzMDAsImV4cCI6MjA4MzczMjMwMH0.pK1YnMGFdEPMqu7mPzJxs48yI6hJ7gEdgMPopCS4qBA';
 
 export const INITIAL_SETTINGS: SiteSettings = {
   tabTitle: "JoJo's Artisanal Journal",
@@ -33,6 +39,16 @@ export const INITIAL_SETTINGS: SiteSettings = {
     imageLeft: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1000',
     imageRight: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1000'
   },
+  pageHeaders: {
+    apparelTitle: 'Collections',
+    apparelSubtitle: 'Apparel Design',
+    fibreTitle: 'Collections',
+    fibreSubtitle: 'Fibre Arts',
+    visualTitle: 'Collections',
+    visualSubtitle: 'Visual Arts',
+    journalTitle: 'Journal',
+    journalSubtitle: 'The Archive'
+  },
   footer: {
     subscribeTitle: 'Join the inner circle for pattern releases and design musings.',
     contactTag: 'TALK TO ME',
@@ -52,6 +68,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
     archiveTag: 'The Archive'
   },
   integrations: {
+    // If these are empty, the app will try to use the constants SUPABASE_URL/ANON_KEY above
     supabaseUrl: '',
     supabaseAnonKey: ''
   }

@@ -6,26 +6,22 @@ import Hero from './components/Hero';
 import CategorySection from './components/CategorySection';
 import JournalCard from './components/JournalCard';
 import AdminLogin from './components/AdminLogin';
+import AdminDashboard from './components/AdminDashboard';
 import PortfolioGallery from './components/PortfolioGallery';
-import { Category, PortfolioItem, BlogPost, SiteSettings } from './types';
-import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS, K } from './constants';
-import { Trash2, LogOut, Image as ImageIcon, X, Edit3, Users, CheckCircle2, Settings, Globe, ShieldCheck, Pin, PinOff, Download, Database, Mail, ChevronLeft, ChevronRight, Share2, Layout } from 'lucide-react';
+import { Category, PortfolioItem, BlogPost, SiteSettings, Subscriber } from './types';
+import { INITIAL_PORTFOLIO, INITIAL_BLOGS, INITIAL_SETTINGS, K, SUPABASE_URL, SUPABASE_ANON_KEY } from './constants';
+import { X, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
-interface Subscriber {
-  id: string;
-  email: string;
-  date: string;
-}
-
-const Toast: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
+const Toast: React.FC<{ message: string; type?: 'success' | 'warning'; onClose: () => void }> = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
+    const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-10 right-10 z-[200] bg-[#2C2C2C] text-white px-6 py-4 shadow-2xl flex items-center gap-4 animate-in slide-in-from-right duration-300">
-      <CheckCircle2 size={20} className="text-green-400" />
+    <div className={`fixed bottom-10 right-10 z-[200] px-6 py-4 shadow-2xl flex items-center gap-4 animate-in slide-in-from-right duration-300 ${type === 'warning' ? 'bg-amber-100 text-amber-900' : 'bg-[#2C2C2C] text-white'}`}>
+      {type === 'warning' ? <AlertTriangle size={20} className="text-amber-600" /> : <CheckCircle2 size={20} className="text-green-400" />}
       <p className="text-xs uppercase tracking-widest">{message}</p>
       <button onClick={onClose} className="ml-4 hover:opacity-70 transition-opacity">
         <X size={16} />
@@ -89,729 +85,23 @@ const Footer: React.FC<{ onSubscribe: (email: string) => void, settings: SiteSet
   );
 };
 
-const AdminDashboard: React.FC<{ 
-  portfolio: PortfolioItem[], 
-  blogs: BlogPost[],
-  subscribers: Subscriber[],
-  siteSettings: SiteSettings,
-  onLogout: () => void,
-  onAddItem: (item: PortfolioItem) => void,
-  onAddBlog: (blog: BlogPost) => void,
-  onDeleteItem: (id: string) => void,
-  onDeleteBlog: (id: string) => void,
-  onUpdateItem: (id: string, item: PortfolioItem) => void,
-  onUpdateBlog: (id: string, blog: BlogPost) => void,
-  onTogglePinItem: (id: string) => void,
-  onTogglePinBlog: (id: string) => void,
-  onDeleteSubscriber: (id: string) => void,
-  onUpdateSettings: (settings: SiteSettings) => void,
-  onUpdatePassword: (old: string, updated: string) => boolean,
-  onImportData: (data: any) => void
-}> = ({ 
-  portfolio, blogs, subscribers, siteSettings, onLogout, 
-  onAddItem, onAddBlog, onDeleteItem, onDeleteBlog, onUpdateItem, onUpdateBlog, onTogglePinItem, onTogglePinBlog,
-  onDeleteSubscriber, onUpdateSettings, onUpdatePassword, onImportData
-}) => {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'blog' | 'subscribers' | 'settings' | 'security'>('portfolio');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [pwdCurrent, setPwdCurrent] = useState('');
-  const [pwdNew, setPwdNew] = useState('');
-  const [pwdConfirm, setPwdConfirm] = useState('');
-  
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubtitle, setNewSubtitle] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-  const [newCategory, setNewCategory] = useState<Category>(Category.APPAREL);
-  const [newImages, setNewImages] = useState<string[]>([]);
-  const [newDate, setNewDate] = useState('');
-  const [newAuthor, setNewAuthor] = useState('Elena');
-  
-  const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
-
-  useEffect(() => {
-    if (!editingId && activeTab === 'blog') {
-      setNewDate(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
-      setNewAuthor('Elena');
-    }
-  }, [activeTab, editingId]);
-
-  const handleTabSwitch = (tab: typeof activeTab) => {
-    setActiveTab(tab);
-    resetForm();
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'form' | 'heroLeft' | 'heroRight' | 'favicon' | 'logo') => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (target === 'form') {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          setNewImages(prev => [...prev, result]);
-        };
-        reader.readAsDataURL(file);
-      });
-    } else {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        if (target === 'heroLeft') {
-          setTempSettings(prev => ({ ...prev, hero: { ...prev.hero, imageLeft: result } }));
-        } else if (target === 'heroRight') {
-          setTempSettings(prev => ({ ...prev, hero: { ...prev.hero, imageRight: result } }));
-        } else if (target === 'favicon') {
-          setTempSettings(prev => ({ ...prev, faviconUrl: result }));
-        } else if (target === 'logo') {
-          setTempSettings(prev => ({ ...prev, navbar: { ...prev.navbar, logoImage: result } }));
-        }
-      };
-      reader.readAsDataURL(files[0]);
-    }
-  };
-
-  const resetForm = () => {
-    setNewTitle('');
-    setNewSubtitle('');
-    setNewDesc('');
-    setNewImages([]);
-    setEditingId(null);
-  };
-
-  const handleEditPortfolio = (item: PortfolioItem) => {
-    setEditingId(item.id);
-    setNewTitle(item.title);
-    setNewSubtitle(item.subtitle || '');
-    setNewDesc(item.description);
-    setNewCategory(item.category);
-    setNewImages(item.imageUrls);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleEditBlog = (blog: BlogPost) => {
-    setEditingId(blog.id);
-    setNewTitle(blog.title);
-    setNewDesc(blog.content);
-    setNewImages(blog.imageUrls);
-    setNewDate(blog.date);
-    setNewAuthor(blog.author);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleSubmit = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!newTitle || newImages.length === 0) {
-      alert("Title and image are required Assets.");
-      return;
-    }
-    if (activeTab === 'portfolio') {
-      const item: PortfolioItem = {
-        id: editingId || Math.random().toString(36).substr(2, 9),
-        title: newTitle,
-        subtitle: newSubtitle,
-        description: newDesc,
-        category: newCategory,
-        imageUrls: newImages,
-        createdAt: Date.now(),
-        pinned: false
-      };
-      if (editingId) onUpdateItem(editingId, item); else onAddItem(item);
-    } else {
-      const blog: BlogPost = {
-        id: editingId || Math.random().toString(36).substr(2, 9),
-        title: newTitle,
-        date: newDate,
-        content: newDesc,
-        imageUrls: newImages,
-        author: newAuthor,
-        pinned: false
-      };
-      if (editingId) onUpdateBlog(editingId, blog); else onAddBlog(blog);
-    }
-    resetForm();
-  };
-
-  const handleExportBackup = () => {
-    const backupData = { portfolio, blogs, siteSettings, version: "7.7", exportedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `studio_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          if (data.portfolio && data.siteSettings) {
-            onImportData(data);
-            alert("Restoration successful.");
-          }
-        } catch (err) { alert("Format error."); }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  return (
-    <div className="max-w-[1600px] mx-auto px-6 py-12 min-h-screen animate-in fade-in">
-      <div className="flex justify-between items-center mb-12 pb-6 border-b border-[#E5E0D5]">
-        <h1 className="text-4xl serif tracking-tight">Studio Management</h1>
-        <button onClick={onLogout} className="flex items-center text-xs uppercase tracking-widest text-[#706C61] hover:text-black transition-colors">
-          <LogOut size={16} className="mr-2" /> End Session
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1 space-y-2">
-          <button onClick={() => handleTabSwitch('portfolio')} className={`w-full text-left px-6 py-4 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${activeTab === 'portfolio' ? 'bg-[#2C2C2C] text-white shadow-lg' : 'bg-white border border-[#E5E0D5] text-[#706C61] hover:bg-[#F9F7F2]'}`}><ImageIcon size={14}/> Gallery Assets</button>
-          <button onClick={() => handleTabSwitch('blog')} className={`w-full text-left px-6 py-4 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${activeTab === 'blog' ? 'bg-[#2C2C2C] text-white shadow-lg' : 'bg-white border border-[#E5E0D5] text-[#706C61] hover:bg-[#F9F7F2]'}`}><Edit3 size={14}/> Journal Assets</button>
-          <button onClick={() => handleTabSwitch('subscribers')} className={`w-full text-left px-6 py-4 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${activeTab === 'subscribers' ? 'bg-[#2C2C2C] text-white shadow-lg' : 'bg-white border border-[#E5E0D5] text-[#706C61] hover:bg-[#F9F7F2]'}`}><Users size={14}/> Subscribers</button>
-          <button onClick={() => handleTabSwitch('settings')} className={`w-full text-left px-6 py-4 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${activeTab === 'settings' ? 'bg-[#2C2C2C] text-white shadow-lg' : 'bg-white border border-[#E5E0D5] text-[#706C61] hover:bg-[#F9F7F2]'}`}><Settings size={14}/> Site Config</button>
-          <button onClick={() => handleTabSwitch('security')} className={`w-full text-left px-6 py-4 text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${activeTab === 'security' ? 'bg-[#2C2C2C] text-white shadow-lg' : 'bg-white border border-[#E5E0D5] text-[#706C61] hover:bg-[#F9F7F2]'}`}><ShieldCheck size={14}/> Security</button>
-        </div>
-
-        <div className="lg:col-span-3 space-y-8">
-            {activeTab === 'settings' ? (
-              <div className="animate-in slide-in-from-right duration-500 pb-20">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                  {/* Presence & Branding */}
-                  <div className="space-y-8">
-                    <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                      <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Globe size={14} /> Presence</h3>
-                      <div className="space-y-6">
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Tab Title</label><input value={tempSettings.tabTitle} onChange={e => setTempSettings({...tempSettings, tabTitle: e.target.value })} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        <div>
-                          <label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Favicon</label>
-                          <div className="flex gap-4 items-center mb-2">
-                             {tempSettings.faviconUrl && (
-                               <div className="w-12 h-12 bg-[#F9F7F2] border border-[#E5E0D5] p-2 flex items-center justify-center shrink-0">
-                                 <img src={tempSettings.faviconUrl} alt="Favicon" className="w-8 h-8 object-contain" />
-                               </div>
-                             )}
-                             <div className="relative border border-dashed border-[#E5E0D5] py-3 px-4 text-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group flex-1">
-                                <ImageIcon size={14} className="mx-auto mb-1 text-[#A09885]" />
-                                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'favicon')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                <p className="text-[8px] uppercase tracking-widest">Upload Icon</p>
-                             </div>
-                          </div>
-                          <input value={tempSettings.faviconUrl} onChange={e => setTempSettings({...tempSettings, faviconUrl: e.target.value })} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none text-[#706C61]" placeholder="Or enter URL..." />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                      <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Share2 size={14} /> Identity & Socials</h3>
-                      <div className="space-y-6">
-                        <div>
-                            <label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Navbar Logo Icon</label>
-                            <div className="flex gap-4 items-center mb-2">
-                             {tempSettings.navbar.logoImage && (
-                               <div className="w-12 h-12 bg-[#F9F7F2] border border-[#E5E0D5] p-2 flex items-center justify-center shrink-0">
-                                 <img src={tempSettings.navbar.logoImage} alt="Logo" className="w-full h-full object-contain" />
-                               </div>
-                             )}
-                             <div className="relative border border-dashed border-[#E5E0D5] py-3 px-4 text-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group flex-1">
-                                <ImageIcon size={14} className="mx-auto mb-1 text-[#A09885]" />
-                                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                <p className="text-[8px] uppercase tracking-widest">Upload Logo</p>
-                             </div>
-                          </div>
-                        </div>
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Logo Text</label><input value={tempSettings.navbar.logo} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, logo: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Subtitle</label><input value={tempSettings.navbar.subtitle} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, subtitle: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        <div className="pt-4 border-t border-[#E5E0D5]">
-                           <div className="mb-3"><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Instagram URL</label><input value={tempSettings.navbar.socials.instagram} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, socials: { ...tempSettings.navbar.socials, instagram: e.target.value } }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                           <div className="mb-3"><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Facebook URL</label><input value={tempSettings.navbar.socials.facebook} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, socials: { ...tempSettings.navbar.socials, facebook: e.target.value } }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                           <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">YouTube URL</label><input value={tempSettings.navbar.socials.youtube} onChange={e => setTempSettings({...tempSettings, navbar: { ...tempSettings.navbar, socials: { ...tempSettings.navbar.socials, youtube: e.target.value } }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Hero & Sections */}
-                  <div className="space-y-8">
-                    <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                      <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b">Hero Content</h3>
-                      <div className="space-y-6">
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Hero Tag</label><input value={tempSettings.hero.tag} onChange={e => setTempSettings({...tempSettings, hero: { ...tempSettings.hero, tag: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Hero Title</label><input value={tempSettings.hero.title} onChange={e => setTempSettings({...tempSettings, hero: { ...tempSettings.hero, title: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                        <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Description</label><textarea rows={3} value={tempSettings.hero.description} onChange={e => setTempSettings({...tempSettings, hero: { ...tempSettings.hero, description: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none resize-none" /></div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="relative border border-dashed border-[#E5E0D5] h-32 flex flex-col items-center justify-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group overflow-hidden">
-                            {tempSettings.hero.imageLeft ? (
-                                <>
-                                    <img src={tempSettings.hero.imageLeft} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
-                                    <div className="relative z-10 flex flex-col items-center">
-                                         <Edit3 size={16} className="mb-1 text-[#2C2C2C]" />
-                                         <p className="text-[8px] uppercase tracking-widest font-bold text-[#2C2C2C]">Change Left</p>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <ImageIcon size={16} className="mx-auto mb-1 text-[#A09885]" />
-                                    <p className="text-[8px] uppercase tracking-widest">Img Left</p>
-                                </>
-                            )}
-                            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'heroLeft')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
-                          </div>
-                          <div className="relative border border-dashed border-[#E5E0D5] h-32 flex flex-col items-center justify-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group overflow-hidden">
-                            {tempSettings.hero.imageRight ? (
-                                <>
-                                    <img src={tempSettings.hero.imageRight} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
-                                    <div className="relative z-10 flex flex-col items-center">
-                                         <Edit3 size={16} className="mb-1 text-[#2C2C2C]" />
-                                         <p className="text-[8px] uppercase tracking-widest font-bold text-[#2C2C2C]">Change Right</p>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <ImageIcon size={16} className="mx-auto mb-1 text-[#A09885]" />
-                                    <p className="text-[8px] uppercase tracking-widest">Img Right</p>
-                                </>
-                            )}
-                            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'heroRight')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                      <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Layout size={14} /> Home Page Sections</h3>
-                      <div className="space-y-6">
-                        {/* Apparel */}
-                        <div className="pb-4 border-b border-[#E5E0D5]">
-                           <p className="text-[9px] uppercase font-bold text-[#2C2C2C] mb-3">Apparel Section</p>
-                           <div className="grid grid-cols-2 gap-2 mb-2">
-                             <input placeholder="Title" value={tempSettings.homeSections.apparelTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTitle: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                             <input placeholder="Tag" value={tempSettings.homeSections.apparelTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelTag: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                           </div>
-                           <input placeholder="Button Text" value={tempSettings.homeSections.apparelButtonText} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, apparelButtonText: e.target.value}})} className="w-full p-2 border border-[#E5E0D5] text-xs outline-none" />
-                        </div>
-                         {/* Fibre */}
-                         <div className="pb-4 border-b border-[#E5E0D5]">
-                           <p className="text-[9px] uppercase font-bold text-[#2C2C2C] mb-3">Fibre Section</p>
-                           <div className="grid grid-cols-2 gap-2 mb-2">
-                             <input placeholder="Title" value={tempSettings.homeSections.fibreTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTitle: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                             <input placeholder="Tag" value={tempSettings.homeSections.fibreTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreTag: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                           </div>
-                           <input placeholder="Button Text" value={tempSettings.homeSections.fibreButtonText} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, fibreButtonText: e.target.value}})} className="w-full p-2 border border-[#E5E0D5] text-xs outline-none" />
-                        </div>
-                         {/* Visual */}
-                         <div className="">
-                           <p className="text-[9px] uppercase font-bold text-[#2C2C2C] mb-3">Visual Section</p>
-                           <div className="grid grid-cols-2 gap-2 mb-2">
-                             <input placeholder="Title" value={tempSettings.homeSections.visualTitle} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTitle: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                             <input placeholder="Tag" value={tempSettings.homeSections.visualTag} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualTag: e.target.value}})} className="p-2 border border-[#E5E0D5] text-xs outline-none" />
-                           </div>
-                           <input placeholder="Button Text" value={tempSettings.homeSections.visualButtonText} onChange={e => setTempSettings({...tempSettings, homeSections: {...tempSettings.homeSections, visualButtonText: e.target.value}})} className="w-full p-2 border border-[#E5E0D5] text-xs outline-none" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Footer & Cloud */}
-                  <div className="space-y-8 md:col-span-2">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                           <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Mail size={14} /> Footer Content</h3>
-                           <div className="space-y-4">
-                             <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Subscribe Title</label><input value={tempSettings.footer.subscribeTitle} onChange={e => setTempSettings({...tempSettings, footer: { ...tempSettings.footer, subscribeTitle: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Contact Tag</label><input value={tempSettings.footer.contactTag} onChange={e => setTempSettings({...tempSettings, footer: { ...tempSettings.footer, contactTag: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                                <div><label className="text-[9px] uppercase tracking-widest text-[#A09885] mb-2 block">Contact Email</label><input value={tempSettings.footer.contactEmail} onChange={e => setTempSettings({...tempSettings, footer: { ...tempSettings.footer, contactEmail: e.target.value }})} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" /></div>
-                             </div>
-                           </div>
-                        </div>
-
-                        <div className="bg-white border border-[#E5E0D5] p-8 shadow-sm">
-                          <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#706C61] mb-8 pb-4 border-b flex items-center gap-2"><Database size={14} /> Cloud Integration</h3>
-                          <div className="space-y-4">
-                            <input placeholder="Supabase URL" value={tempSettings.integrations?.supabaseUrl || ''} onChange={e => setTempSettings({...tempSettings, integrations: { ...(tempSettings.integrations || { supabaseUrl: '', supabaseAnonKey: '' }), supabaseUrl: e.target.value } })} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" />
-                            <input placeholder="Anon Key" type="password" value={tempSettings.integrations?.supabaseAnonKey || ''} onChange={e => setTempSettings({...tempSettings, integrations: { ...(tempSettings.integrations || { supabaseUrl: '', supabaseAnonKey: '' }), supabaseAnonKey: e.target.value } })} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" />
-                          </div>
-                        </div>
-                     </div>
-                  </div>
-                </div>
-                
-                <div className="bg-[#F9F7F2] border border-[#E5E0D5] p-8 mb-12 flex justify-between items-center">
-                  <h3 className="text-xs uppercase tracking-widest text-[#706C61]">Site Maintenance</h3>
-                  <div className="flex gap-4">
-                    <button onClick={handleExportBackup} className="px-6 py-3 bg-[#2C2C2C] text-white text-[9px] uppercase tracking-widest hover:bg-black transition-colors flex items-center gap-2"><Download size={14}/> Export</button>
-                    <label className="px-6 py-3 bg-white border border-[#2C2C2C] text-[#2C2C2C] text-[9px] uppercase tracking-widest hover:bg-[#F9F7F2] cursor-pointer text-center">Import<input type="file" accept=".json" onChange={handleImportBackup} className="hidden" /></label>
-                  </div>
-                </div>
-                <button onClick={() => onUpdateSettings(tempSettings)} className="w-full py-6 bg-black text-white text-[11px] uppercase tracking-[0.4em] font-bold shadow-2xl sticky bottom-6">Confirm All Updates</button>
-              </div>
-            ) : (activeTab === 'portfolio' || activeTab === 'blog') ? (
-              <div className={`grid gap-8 animate-in slide-in-from-right duration-500 ${activeTab === 'portfolio' ? 'grid-cols-1 xl:grid-cols-12' : 'grid-cols-1 md:grid-cols-2'}`}>
-                {/* Form Section */}
-                <div className={`space-y-6 bg-white border border-[#E5E0D5] p-8 h-fit sticky top-24 shadow-sm ${activeTab === 'portfolio' ? 'xl:col-span-3' : ''}`}>
-                  <h3 className="text-sm font-bold uppercase tracking-widest pb-4 border-b text-[#2C2C2C]">
-                    {editingId ? `Edit ${activeTab === 'portfolio' ? 'Asset' : 'Post'}` : `New ${activeTab === 'portfolio' ? 'Asset' : 'Post'}`}
-                  </h3>
-                  <div className="space-y-5">
-                    {activeTab === 'portfolio' && (
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Archive Category</label>
-                        <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as Category)} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none bg-white">
-                          <option value={Category.APPAREL}>Apparel Design</option>
-                          <option value={Category.FIBRE}>Fibre Arts</option>
-                          <option value={Category.VISUAL}>Visual Arts</option>
-                        </select>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Title</label>
-                      <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Entry Title" className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" />
-                    </div>
-                    {activeTab === 'blog' ? (
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Publication Date</label>
-                        <input value={newDate} onChange={(e) => setNewDate(e.target.value)} placeholder="October 28, 2024" className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" />
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Subheading / Tag</label>
-                        <input value={newSubtitle} onChange={(e) => setNewSubtitle(e.target.value)} placeholder="Subheading" className="w-full p-3 border border-[#E5E0D5] text-xs outline-none" />
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Content Body</label>
-                      {activeTab === 'blog' ? (
-                        <textarea rows={12} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Write your story here... (Supports basic HTML)" className="w-full p-3 border border-[#E5E0D5] text-xs outline-none resize-none leading-relaxed font-serif" />
-                      ) : (
-                        <textarea rows={8} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full p-3 border border-[#E5E0D5] text-xs outline-none resize-none leading-relaxed" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] uppercase tracking-widest text-[#A09885]">Visual Assets</label>
-                      <div className="relative border-2 border-dashed border-[#E5E0D5] py-10 text-center hover:bg-[#F9F7F2] transition-colors cursor-pointer group">
-                        <ImageIcon size={28} className="mx-auto mb-2 text-[#A09885]" />
-                        <input type="file" multiple accept="image/*" onChange={(e) => handleImageUpload(e, 'form')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                        <p className="text-[8px] uppercase tracking-widest">Upload</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {newImages.map((img, i) => (
-                          <div key={i} className="relative w-12 h-12 bg-[#E5E0D5] group rounded-sm overflow-hidden">
-                            <img src={img} className="w-full h-full object-cover" />
-                            <button onClick={() => setNewImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><X size={12}/></button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <button onClick={handleSubmit} className="w-full py-4 bg-black text-white text-[10px] uppercase tracking-[0.2em] font-bold shadow-lg">
-                      {editingId ? 'Save Changes' : 'Publish'}
-                    </button>
-                    {editingId && <button onClick={resetForm} className="w-full py-2 text-[10px] uppercase tracking-widest text-red-400">Cancel Edit</button>}
-                  </div>
-                </div>
-
-                {/* Explorer Section */}
-                <div className={`space-y-4 ${activeTab === 'portfolio' ? 'xl:col-span-9' : ''}`}>
-                  <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A09885] mb-6">Archive Explorer</h3>
-                  
-                  {activeTab === 'portfolio' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {[Category.APPAREL, Category.FIBRE, Category.VISUAL].map((cat) => (
-                        <div key={cat} className="space-y-4">
-                          <h4 className="text-xs uppercase tracking-widest text-[#706C61] border-b border-[#E5E0D5] pb-2 mb-2 font-bold">{cat}</h4>
-                          <div className="space-y-3">
-                            {portfolio.filter(p => p.category === cat).map((item) => (
-                              <div key={item.id} className={`p-3 bg-white border border-[#E5E0D5] flex items-center gap-4 group hover:shadow-md transition-all ${item.pinned ? 'border-l-4 border-l-[#A09885]' : ''}`}>
-                                <div className="w-12 h-16 bg-[#F9F7F2] overflow-hidden flex-shrink-0 shadow-sm rounded-sm">
-                                  <img src={item.imageUrls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="serif text-sm truncate mb-1 text-[#2C2C2C]">{item.title}</h4>
-                                  <p className="text-[8px] uppercase tracking-widest text-[#A09885] truncate">{item.subtitle}</p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <button onClick={() => onTogglePinItem(item.id)} className={`p-1 transition-all rounded-full hover:bg-[#F9F7F2] ${item.pinned ? 'text-[#A09885]' : 'text-[#E5E0D5] hover:text-[#A09885]'}`}>{item.pinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
-                                    <button onClick={() => handleEditPortfolio(item)} className="p-1 text-[#E5E0D5] hover:text-black hover:bg-[#F9F7F2] transition-all rounded-full"><Edit3 size={14} /></button>
-                                    <button onClick={() => onDeleteItem(item.id)} className="p-1 text-[#E5E0D5] hover:text-red-500 hover:bg-red-50 transition-all rounded-full"><Trash2 size={14} /></button>
-                                </div>
-                              </div>
-                            ))}
-                            {portfolio.filter(p => p.category === cat).length === 0 && (
-                                <p className="text-[10px] italic text-[#E5E0D5]">No items in this collection.</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {blogs.map((item: any) => (
-                        <div key={item.id} className={`p-4 bg-white border border-[#E5E0D5] flex items-center gap-6 group hover:shadow-md transition-all ${item.pinned ? 'border-l-4 border-l-[#A09885]' : ''}`}>
-                           <div className="w-16 h-20 bg-[#F9F7F2] overflow-hidden flex-shrink-0 shadow-sm rounded-sm">
-                             <img src={item.imageUrls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                             <h4 className="serif text-lg truncate mb-1 text-[#2C2C2C]">{item.title}</h4>
-                             <p className="text-[9px] uppercase tracking-widest text-[#A09885]">{item.date}</p>
-                           </div>
-                           <div className="flex gap-1">
-                              <button onClick={() => onTogglePinBlog(item.id)} className={`p-2 transition-all rounded-full hover:bg-[#F9F7F2] ${item.pinned ? 'text-[#A09885]' : 'text-[#E5E0D5] hover:text-[#A09885]'}`}>{item.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
-                              <button onClick={() => handleEditBlog(item)} className="p-2 text-[#E5E0D5] hover:text-black hover:bg-[#F9F7F2] transition-all rounded-full"><Edit3 size={16} /></button>
-                              <button onClick={() => onDeleteBlog(item.id)} className="p-2 text-[#E5E0D5] hover:text-red-500 hover:bg-red-50 transition-all rounded-full"><Trash2 size={16} /></button>
-                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : activeTab === 'subscribers' ? (
-              <div className="bg-white border border-[#E5E0D5] p-12 animate-in fade-in">
-                 <div className="text-center mb-12"><Users size={48} className="mx-auto text-[#E5E0D5] mb-4" /><h2 className="text-2xl serif italic">Audience Registry</h2></div>
-                 <div className="max-w-2xl mx-auto divide-y divide-[#E5E0D5]">
-                   {subscribers.map(sub => (
-                     <div key={sub.id} className="py-6 flex justify-between items-center group">
-                       <div><p className="text-sm serif">{sub.email}</p><p className="text-[8px] uppercase tracking-widest text-[#A09885] mt-1">Joined {new Date(sub.date).toLocaleDateString()}</p></div>
-                       <button onClick={() => onDeleteSubscriber(sub.id)} className="text-red-300 opacity-0 group-hover:opacity-100 transition-all hover:text-red-500"><Trash2 size={16}/></button>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-            ) : (
-              <div className="bg-white border border-[#E5E0D5] p-12 max-w-lg mx-auto text-center">
-                 <ShieldCheck size={48} className="mx-auto text-[#E5E0D5] mb-8" /><h2 className="text-2xl serif mb-8">Access Key</h2>
-                 <div className="space-y-4">
-                   <input type="password" placeholder="Current Secret" value={pwdCurrent} onChange={e => setPwdCurrent(e.target.value)} className="w-full p-4 border text-xs outline-none" />
-                   <input type="password" placeholder="New Secret" value={pwdNew} onChange={e => setPwdNew(e.target.value)} className="w-full p-4 border text-xs outline-none" />
-                   <input type="password" placeholder="Confirm New Secret" value={pwdConfirm} onChange={e => setPwdConfirm(e.target.value)} className="w-full p-4 border text-xs outline-none" />
-                   <button onClick={() => {
-                      if (pwdNew !== pwdConfirm) { alert("Secrets do not match."); return; }
-                      if (onUpdatePassword(pwdCurrent, pwdNew)) { alert("Synced successfully."); setPwdCurrent(''); setPwdNew(''); setPwdConfirm(''); } else { alert("Invalid current secret."); }
-                    }} className="w-full py-5 bg-black text-white text-[10px] uppercase tracking-widest font-bold">Update Dashboard Access</button>
-                 </div>
-              </div>
-            )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const App: React.FC = () => {
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>(INITIAL_PORTFOLIO);
-  const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
-  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
-
-  // Local Storage Persistence
-  useEffect(() => {
-    const savedPortfolio = localStorage.getItem('portfolio');
-    if (savedPortfolio) setPortfolio(JSON.parse(savedPortfolio));
-    
-    const savedBlogs = localStorage.getItem('blogs');
-    if (savedBlogs) setBlogs(JSON.parse(savedBlogs));
-    
-    const savedSettings = localStorage.getItem('siteSettings');
-    if (savedSettings) setSiteSettings(JSON.parse(savedSettings));
-
-    const savedSubs = localStorage.getItem('subscribers');
-    if (savedSubs) setSubscribers(JSON.parse(savedSubs));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('portfolio', JSON.stringify(portfolio));
-    localStorage.setItem('blogs', JSON.stringify(blogs));
-    localStorage.setItem('siteSettings', JSON.stringify(siteSettings));
-    localStorage.setItem('subscribers', JSON.stringify(subscribers));
-  }, [portfolio, blogs, siteSettings, subscribers]);
-
-  const sortedPortfolio = useMemo(() => {
-      return [...portfolio].sort((a, b) => {
-        if (a.pinned === b.pinned) {
-            return b.createdAt - a.createdAt;
-        }
-        return a.pinned ? -1 : 1;
-      });
-  }, [portfolio]);
-
-  const sortedBlogs = useMemo(() => {
-      return [...blogs].sort((a, b) => {
-        if (a.pinned === b.pinned) {
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-        return a.pinned ? -1 : 1;
-      });
-  }, [blogs]);
-
-  const showToast = (msg: string) => setToastMessage(msg);
-
-  const handleLogin = (password: string) => {
-    if (password === K) {
-      setIsAdmin(true);
-      return true;
-    }
-    return false;
-  };
-
-  const handleLogout = () => setIsAdmin(false);
-
-  const handleSubscribe = (email: string) => {
-    if (subscribers.some(s => s.email === email)) {
-      showToast("Already subscribed!");
-      return;
-    }
-    const newSub: Subscriber = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      date: new Date().toISOString()
-    };
-    setSubscribers([...subscribers, newSub]);
-    showToast("Thank you for subscribing.");
-  };
-
-  const handleAddItem = (item: PortfolioItem) => {
-    setPortfolio([item, ...portfolio]);
-    showToast("Asset added.");
-  };
-
-  const handleAddBlog = (blog: BlogPost) => {
-    setBlogs([blog, ...blogs]);
-    showToast("Entry published.");
-  };
-
-  const handleDeleteItem = (id: string) => {
-    setPortfolio(portfolio.filter(i => i.id !== id));
-    showToast("Asset removed.");
-  };
-
-  const handleDeleteBlog = (id: string) => {
-    setBlogs(blogs.filter(b => b.id !== id));
-    showToast("Entry deleted.");
-  };
-
-  const handleUpdateItem = (id: string, updated: PortfolioItem) => {
-    setPortfolio(portfolio.map(i => i.id === id ? updated : i));
-    showToast("Asset updated.");
-  };
-
-  const handleUpdateBlog = (id: string, updated: BlogPost) => {
-    setBlogs(blogs.map(b => b.id === id ? updated : b));
-    showToast("Entry updated.");
-  };
-
-  const handleTogglePinItem = (id: string) => {
-    setPortfolio(portfolio.map(i => i.id === id ? { ...i, pinned: !i.pinned } : i));
-  };
-
-  const handleTogglePinBlog = (id: string) => {
-    setBlogs(blogs.map(b => b.id === id ? { ...b, pinned: !b.pinned } : b));
-  };
-
-  const handleDeleteSubscriber = (id: string) => {
-    setSubscribers(subscribers.filter(s => s.id !== id));
-    showToast("Subscriber removed.");
-  };
-
-  const handleUpdateSettings = (newSettings: SiteSettings) => {
-    setSiteSettings(newSettings);
-    showToast("Configuration saved.");
-  };
-
-  const handleUpdatePassword = (old: string, updated: string) => {
-    if (old === K) {
-      showToast("Password updated (Simulated).");
-      return true;
-    }
-    return false;
-  };
-
-  const handleImportData = (data: any) => {
-    if (data.portfolio) setPortfolio(data.portfolio);
-    if (data.blogs) setBlogs(data.blogs);
-    if (data.siteSettings) setSiteSettings(data.siteSettings);
-    showToast("System restored from backup.");
-  };
-
-  return (
-    <Router>
-      <ScrollToTop />
-      <div className="min-h-screen bg-[#F9F7F2] text-[#2C2C2C] selection:bg-[#E5E0D5] selection:text-[#2C2C2C] font-sans">
-        <Navbar settings={siteSettings.navbar} />
-        
-        <Routes>
-          <Route path="/" element={<HomePage portfolio={sortedPortfolio} blogs={sortedBlogs} siteSettings={siteSettings} onItemClick={setSelectedItem} onBlogClick={setSelectedBlog} />} />
-          <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={sortedPortfolio} onItemClick={setSelectedItem} />} />
-          <Route path="/journal" element={<JournalPage blogs={sortedBlogs} onBlogClick={setSelectedBlog} />} />
-          <Route path="/studio" element={
-            isAdmin ? (
-              <AdminDashboard 
-                portfolio={sortedPortfolio} 
-                blogs={sortedBlogs} 
-                subscribers={subscribers} 
-                siteSettings={siteSettings}
-                onLogout={handleLogout}
-                onAddItem={handleAddItem}
-                onAddBlog={handleAddBlog}
-                onDeleteItem={handleDeleteItem}
-                onDeleteBlog={handleDeleteBlog}
-                onUpdateItem={handleUpdateItem}
-                onUpdateBlog={handleUpdateBlog}
-                onTogglePinItem={handleTogglePinItem}
-                onTogglePinBlog={handleTogglePinBlog}
-                onDeleteSubscriber={handleDeleteSubscriber}
-                onUpdateSettings={handleUpdateSettings}
-                onUpdatePassword={handleUpdatePassword}
-                onImportData={handleImportData}
-              />
-            ) : (
-              <AdminLogin onLogin={handleLogin} />
-            )
-          } />
-        </Routes>
-
-        <Footer onSubscribe={handleSubscribe} settings={siteSettings.footer} />
-
-        <PortfolioGallery item={selectedItem} onClose={() => setSelectedItem(null)} />
-        {selectedBlog && <BlogDetail post={selectedBlog} onClose={() => setSelectedBlog(null)} />}
-        
-        {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
-      </div>
-    </Router>
-  );
-};
-
-export default App;
-
-const CategoryPage: React.FC<{ category: Category; items: PortfolioItem[]; onItemClick: (item: PortfolioItem) => void }> = ({ category, items, onItemClick }) => {
+const CategoryPage: React.FC<{ category: Category; items: PortfolioItem[]; onItemClick: (item: PortfolioItem) => void; title: string; subtitle: string }> = ({ category, items, onItemClick, title, subtitle }) => {
   const filteredItems = items.filter(item => item.category === category);
   return (
     <div className="pt-32 pb-24 px-6 md:px-12 animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16"><p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{category}</p><h2 className="text-5xl serif italic">Collections</h2></div>
+        <div className="text-center mb-16"><p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{subtitle}</p><h2 className="text-5xl serif italic">{title}</h2></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">{filteredItems.map((item) => (<div key={item.id} className="cursor-pointer group flex flex-col" onClick={() => onItemClick(item)}><div className="aspect-[9/16] overflow-hidden mb-6 bg-[#E5E0D5] relative shadow-sm"><img src={item.imageUrls[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /></div><p className="text-[10px] uppercase tracking-widest text-[#706C61] mb-2">{item.subtitle}</p><h3 className="text-xl serif mb-2 group-hover:italic transition-all">{item.title}</h3></div>))}</div>
       </div>
     </div>
   );
 };
 
-const JournalPage: React.FC<{ blogs: BlogPost[]; onBlogClick: (blog: BlogPost) => void }> = ({ blogs, onBlogClick }) => {
+const JournalPage: React.FC<{ blogs: BlogPost[]; onBlogClick: (blog: BlogPost) => void; title: string; subtitle: string }> = ({ blogs, onBlogClick, title, subtitle }) => {
   return (
     <div className="pt-32 pb-24 px-6 md:px-12 bg-[#F9F7F2] animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16"><p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">The Archive</p><h2 className="text-5xl serif italic">Journal</h2></div>
+        <div className="text-center mb-16"><p className="text-xs uppercase tracking-[0.2em] text-[#706C61] mb-2">{subtitle}</p><h2 className="text-5xl serif italic">{title}</h2></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">{blogs.map((post) => (<JournalCard key={post.id} post={post} onClick={onBlogClick} />))}</div>
       </div>
     </div>
@@ -874,8 +164,6 @@ const BlogDetail: React.FC<{ post: BlogPost | null; onClose: () => void }> = ({ 
         <div className="w-full md:w-1/3 text-left bg-white/50 p-6 md:bg-transparent md:p-0 rounded-lg self-center">
           <div className="flex items-center gap-4 mb-2">
              <p className="text-xs uppercase tracking-[0.2em] text-[#706C61]">{post.date}</p>
-             <div className="w-8 h-[1px] bg-[#E5E0D5]"></div>
-             <p className="text-xs uppercase tracking-[0.2em] text-[#706C61] italic">By {post.author}</p>
           </div>
           <h2 className="text-3xl md:text-5xl serif mb-4 leading-tight">{post.title}</h2>
           <div className="w-12 h-[1px] bg-[#2C2C2C] mb-6"></div>
@@ -925,3 +213,332 @@ const HomePage: React.FC<{ portfolio: PortfolioItem[], blogs: BlogPost[], siteSe
     </div>
   );
 };
+
+const App: React.FC = () => {
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>(INITIAL_PORTFOLIO);
+  const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+  const [toastMessage, setToastMessage] = useState<{msg: string, type: 'success' | 'warning'}>({ msg: '', type: 'success' });
+  const [adminPassword, setAdminPassword] = useState<string>(K);
+
+  // 1. Local Storage Persistence (Always runs as fallback/cache)
+  useEffect(() => {
+    try {
+      const savedPortfolio = localStorage.getItem('portfolio');
+      if (savedPortfolio) setPortfolio(JSON.parse(savedPortfolio));
+      
+      const savedBlogs = localStorage.getItem('blogs');
+      if (savedBlogs) setBlogs(JSON.parse(savedBlogs));
+      
+      const savedSettings = localStorage.getItem('siteSettings');
+      if (savedSettings) setSiteSettings(JSON.parse(savedSettings));
+
+      const savedSubs = localStorage.getItem('subscribers');
+      if (savedSubs) setSubscribers(JSON.parse(savedSubs));
+    } catch (e) {
+      console.error("Error reading from local storage:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Helper to safely save to localStorage
+    const saveData = (key: string, data: any) => {
+      try {
+        const serialized = JSON.stringify(data);
+        // Browser quota is typically 5MB (~5.2 million chars). 
+        // We set a safe limit of ~4.5MB to avoid the crash.
+        if (serialized.length > 4500000) {
+           console.warn(`[Storage Warning] ${key} is too large (${(serialized.length / 1024 / 1024).toFixed(2)}MB) to save locally.`);
+           // If we can't save locally, we just skip it. 
+           // In a real app, this confirms the user MUST rely on Cloud (Supabase) for large data.
+           // We'll show a one-time warning via Toast if it's the admin saving it.
+           return false;
+        }
+        localStorage.setItem(key, serialized);
+        return true;
+      } catch (e) {
+        console.error(`Error saving ${key}:`, e);
+        return false;
+      }
+    };
+
+    saveData('portfolio', portfolio);
+    saveData('blogs', blogs);
+    const settingsSaved = saveData('siteSettings', siteSettings);
+    saveData('subscribers', subscribers);
+    
+    // Only warn if settings failed (since that's where large images usually are)
+    // We check if it's likely due to size to provide feedback, but we don't spam toasts here
+    // as this runs on every render.
+    
+    // Apply favicon and title
+    document.title = siteSettings.tabTitle;
+    if (siteSettings.faviconUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = siteSettings.faviconUrl;
+    }
+  }, [portfolio, blogs, siteSettings, subscribers]);
+
+  // 2. Supabase Client Integration
+  const supabase = useMemo(() => {
+    const url = SUPABASE_URL || siteSettings.integrations.supabaseUrl;
+    const key = SUPABASE_ANON_KEY || siteSettings.integrations.supabaseAnonKey;
+
+    if (url && key) {
+      try {
+        return createClient(url, key);
+      } catch (e) {
+        console.error("Invalid Supabase credentials");
+        return null;
+      }
+    }
+    return null;
+  }, [siteSettings.integrations.supabaseUrl, siteSettings.integrations.supabaseAnonKey]);
+
+  // 3. Sync Data from Supabase on Load
+  useEffect(() => {
+    if (!supabase) return;
+    
+    const fetchSupabaseData = async () => {
+      try {
+        const { data: pData } = await supabase.from('portfolio').select('*');
+        if (pData && pData.length > 0) setPortfolio(pData);
+        
+        const { data: bData } = await supabase.from('blogs').select('*');
+        if (bData && bData.length > 0) setBlogs(bData);
+        
+        const { data: sData } = await supabase.from('subscribers').select('*');
+        if (sData && sData.length > 0) setSubscribers(sData);
+
+        const { data: cData } = await supabase.from('site_config').select('*').eq('id', 'global').single();
+        if (cData) {
+          if (cData.settings) setSiteSettings(cData.settings);
+          if (cData.admin_password) setAdminPassword(cData.admin_password);
+        }
+      } catch (err) {
+        console.error("Cloud fetch error:", err);
+      }
+    };
+    
+    fetchSupabaseData();
+  }, [supabase]);
+
+  // Sorting Logic
+  const sortedPortfolio = useMemo(() => {
+      return [...portfolio].sort((a, b) => {
+        if (a.pinned === b.pinned) {
+            return b.createdAt - a.createdAt;
+        }
+        return a.pinned ? -1 : 1;
+      });
+  }, [portfolio]);
+
+  const sortedBlogs = useMemo(() => {
+      return [...blogs].sort((a, b) => {
+        if (a.pinned === b.pinned) {
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        return a.pinned ? -1 : 1;
+      });
+  }, [blogs]);
+
+  const showToast = (msg: string, type: 'success' | 'warning' = 'success') => setToastMessage({ msg, type });
+
+  const handleLogin = (password: string) => {
+    if (password === adminPassword) {
+      setIsAdmin(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleLogout = () => setIsAdmin(false);
+
+  // --- Handlers with Supabase Sync ---
+
+  const handleSubscribe = async (email: string) => {
+    if (subscribers.some(s => s.email === email)) {
+      showToast("Already subscribed!");
+      return;
+    }
+    const newSub: Subscriber = {
+      id: Math.random().toString(36).substr(2, 9),
+      email,
+      date: new Date().toISOString()
+    };
+    
+    setSubscribers([...subscribers, newSub]);
+    if (supabase) await supabase.from('subscribers').insert([newSub]);
+    
+    showToast("Thank you for subscribing.");
+  };
+
+  const handleAddItem = async (item: PortfolioItem) => {
+    setPortfolio([item, ...portfolio]);
+    if (supabase) await supabase.from('portfolio').insert([item]);
+    showToast("Asset added.");
+  };
+
+  const handleAddBlog = async (blog: BlogPost) => {
+    setBlogs([blog, ...blogs]);
+    if (supabase) await supabase.from('blogs').insert([blog]);
+    showToast("Entry published.");
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    setPortfolio(portfolio.filter(i => i.id !== id));
+    if (supabase) await supabase.from('portfolio').delete().eq('id', id);
+    showToast("Asset removed.");
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    setBlogs(blogs.filter(b => b.id !== id));
+    if (supabase) await supabase.from('blogs').delete().eq('id', id);
+    showToast("Entry deleted.");
+  };
+
+  const handleUpdateItem = async (id: string, updated: PortfolioItem) => {
+    setPortfolio(portfolio.map(i => i.id === id ? updated : i));
+    if (supabase) await supabase.from('portfolio').update(updated).eq('id', id);
+    showToast("Asset updated.");
+  };
+
+  const handleUpdateBlog = async (id: string, updated: BlogPost) => {
+    setBlogs(blogs.map(b => b.id === id ? updated : b));
+    if (supabase) await supabase.from('blogs').update(updated).eq('id', id);
+    showToast("Entry updated.");
+  };
+
+  const handleTogglePinItem = async (id: string) => {
+    const updated = portfolio.find(i => i.id === id);
+    if (updated) {
+        const newItem = { ...updated, pinned: !updated.pinned };
+        setPortfolio(portfolio.map(i => i.id === id ? newItem : i));
+        if (supabase) await supabase.from('portfolio').update({ pinned: newItem.pinned }).eq('id', id);
+    }
+  };
+
+  const handleTogglePinBlog = async (id: string) => {
+    const updated = blogs.find(b => b.id === id);
+    if (updated) {
+        const newBlog = { ...updated, pinned: !updated.pinned };
+        setBlogs(blogs.map(b => b.id === id ? newBlog : b));
+        if (supabase) await supabase.from('blogs').update({ pinned: newBlog.pinned }).eq('id', id);
+    }
+  };
+
+  const handleDeleteSubscriber = async (id: string) => {
+    setSubscribers(subscribers.filter(s => s.id !== id));
+    if (supabase) await supabase.from('subscribers').delete().eq('id', id);
+    showToast("Subscriber removed.");
+  };
+
+  const handleUpdateSettings = async (newSettings: SiteSettings) => {
+    // 1. Calculate size to warn user immediately if it's too big for local storage
+    const size = JSON.stringify(newSettings).length;
+    const isTooBig = size > 4500000;
+
+    setSiteSettings(newSettings);
+    
+    // Persist to Supabase
+    if (supabase) {
+        await supabase.from('site_config').upsert({ 
+            id: 'global', 
+            settings: newSettings,
+        }, { onConflict: 'id' });
+    }
+
+    if (isTooBig) {
+        showToast("Saved to Cloud. Images too large for local cache.", 'warning');
+    } else {
+        showToast("Configuration saved.");
+    }
+  };
+
+  const handleUpdatePassword = (old: string, updated: string) => {
+    if (old === adminPassword) {
+      setAdminPassword(updated);
+      if (supabase) {
+          supabase.from('site_config').upsert({ 
+              id: 'global', 
+              admin_password: updated 
+          }, { onConflict: 'id' }).then(({ error }) => {
+              if (error) console.error("Failed to update password cloud", error);
+          });
+      }
+      showToast("Password updated.");
+      return true;
+    }
+    return false;
+  };
+
+  const handleImportData = (data: any) => {
+    if (data.portfolio) setPortfolio(data.portfolio);
+    if (data.blogs) setBlogs(data.blogs);
+    if (data.siteSettings) setSiteSettings(data.siteSettings);
+    showToast("System restored from backup.");
+  };
+
+  // Safe header defaults in case old state exists
+  const headers = siteSettings.pageHeaders || INITIAL_SETTINGS.pageHeaders;
+
+  return (
+    <Router>
+      <ScrollToTop />
+      <div className="min-h-screen bg-[#F9F7F2] text-[#2C2C2C] selection:bg-[#E5E0D5] selection:text-[#2C2C2C] font-sans">
+        <Navbar settings={siteSettings.navbar} />
+        
+        <Routes>
+          <Route path="/" element={<HomePage portfolio={sortedPortfolio} blogs={sortedBlogs} siteSettings={siteSettings} onItemClick={setSelectedItem} onBlogClick={setSelectedBlog} />} />
+          <Route path="/apparel" element={<CategoryPage category={Category.APPAREL} items={sortedPortfolio} onItemClick={setSelectedItem} title={headers.apparelTitle} subtitle={headers.apparelSubtitle} />} />
+          <Route path="/fibre" element={<CategoryPage category={Category.FIBRE} items={sortedPortfolio} onItemClick={setSelectedItem} title={headers.fibreTitle} subtitle={headers.fibreSubtitle} />} />
+          <Route path="/visual" element={<CategoryPage category={Category.VISUAL} items={sortedPortfolio} onItemClick={setSelectedItem} title={headers.visualTitle} subtitle={headers.visualSubtitle} />} />
+          <Route path="/journal" element={<JournalPage blogs={sortedBlogs} onBlogClick={setSelectedBlog} title={headers.journalTitle} subtitle={headers.journalSubtitle} />} />
+          <Route path="/studio" element={
+            isAdmin ? (
+              <AdminDashboard 
+                portfolio={sortedPortfolio} 
+                blogs={sortedBlogs} 
+                subscribers={subscribers} 
+                siteSettings={siteSettings}
+                onLogout={handleLogout}
+                onAddItem={handleAddItem}
+                onAddBlog={handleAddBlog}
+                onDeleteItem={handleDeleteItem}
+                onDeleteBlog={handleDeleteBlog}
+                onUpdateItem={handleUpdateItem}
+                onUpdateBlog={handleUpdateBlog}
+                onTogglePinItem={handleTogglePinItem}
+                onTogglePinBlog={handleTogglePinBlog}
+                onDeleteSubscriber={handleDeleteSubscriber}
+                onUpdateSettings={handleUpdateSettings}
+                onUpdatePassword={handleUpdatePassword}
+                onImportData={handleImportData}
+              />
+            ) : (
+              <AdminLogin onLogin={handleLogin} />
+            )
+          } />
+        </Routes>
+
+        <Footer onSubscribe={handleSubscribe} settings={siteSettings.footer} />
+
+        <PortfolioGallery item={selectedItem} onClose={() => setSelectedItem(null)} />
+        {selectedBlog && <BlogDetail post={selectedBlog} onClose={() => setSelectedBlog(null)} />}
+        
+        {toastMessage.msg && <Toast message={toastMessage.msg} type={toastMessage.type} onClose={() => setToastMessage({ msg: '', type: 'success' })} />}
+      </div>
+    </Router>
+  );
+};
+
+export default App;
